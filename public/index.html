@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CizTap — Azərbaycan</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Nunito',sans-serif}
+body{background:#0d1117;color:#e6edf3;min-height:100vh;overflow-x:hidden}
+button{cursor:pointer;font-family:inherit;border:none;outline:none}
+input,select{font-family:inherit;outline:none}
+
+:root{
+  --blue:#0091c2;--blue2:#006f94;
+  --red:#ef3340;--green:#00a651;--green2:#007a3c;
+  --gold:#f5c842;--bg:#0d1117;--card:#161b22;
+  --card2:#1c2333;--border:#30363d;--sub:#8b949e;--text:#e6edf3;
+}
+
+body::before{
+  content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 55% 40% at 5% 15%,rgba(0,145,194,.13) 0%,transparent 60%),
+    radial-gradient(ellipse 45% 40% at 95% 85%,rgba(0,166,81,.11) 0%,transparent 60%);
+}
+
+/* ── SCREENS ── */
+.screen{display:none;position:relative;z-index:1}
+.screen.active{display:flex}
+
+/* ══════════════════════════════════════
+   HOME
+══════════════════════════════════════ */
+#homeScreen{flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;padding:24px;gap:28px}
+
+.logo{text-align:center;animation:fadeDown .5s ease both}
+.logo h1{font-family:'Baloo 2',cursive;font-size:clamp(3rem,9vw,4.8rem);font-weight:800;
+  line-height:1;letter-spacing:-2px;
+  background:linear-gradient(135deg,#0091c2 20%,#00c47a 55%,#ef3340 90%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.logo p{color:var(--sub);font-size:1.05rem;font-weight:600;margin-top:6px}
+.flag-bar{display:flex;gap:6px;justify-content:center;margin-top:12px}
+.flag-bar span{height:5px;width:54px;border-radius:99px}
+.flag-bar span:nth-child(1){background:var(--blue)}
+.flag-bar span:nth-child(2){background:#ddd}
+.flag-bar span:nth-child(3){background:var(--green)}
+
+.home-card{background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:28px 32px;width:100%;max-width:460px;animation:fadeUp .5s ease .1s both}
+
+.tabs{display:flex;gap:5px;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:22px}
+.tab{flex:1;padding:10px;border-radius:7px;background:transparent;color:var(--sub);
+  font-size:.92rem;font-weight:700;transition:all .2s}
+.tab.active{background:var(--card2);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+
+.tc{display:none;flex-direction:column;gap:13px}
+.tc.active{display:flex}
+
+.ig{display:flex;flex-direction:column;gap:5px}
+.ig label{font-size:.8rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1px}
+.inp{background:var(--card2);border:1.5px solid var(--border);border-radius:10px;
+  padding:11px 15px;color:var(--text);font-size:1rem;font-weight:600;
+  transition:border-color .2s,box-shadow .2s;width:100%}
+.inp:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,145,194,.18)}
+.inp::placeholder{color:var(--sub);font-weight:500}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+
+.btn{padding:13px;border-radius:12px;font-size:1rem;font-weight:800;
+  transition:transform .14s,box-shadow .14s,filter .14s}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.08)}
+.btn:active{transform:translateY(0)}
+.btn-g{background:linear-gradient(135deg,var(--green),var(--green2));
+  color:#fff;box-shadow:0 4px 14px rgba(0,166,81,.32)}
+.btn-b{background:linear-gradient(135deg,var(--blue),var(--blue2));
+  color:#fff;box-shadow:0 4px 14px rgba(0,145,194,.32)}
+.btn-gray{background:var(--card2);border:1.5px solid var(--border);color:var(--text)}
+.btn-r{background:linear-gradient(135deg,#ef3340,#b0000a);color:#fff}
+
+.err{color:var(--red);font-size:.88rem;font-weight:700;text-align:center;min-height:18px}
+
+/* ══════════════════════════════════════
+   LOBBY
+══════════════════════════════════════ */
+#lobbyScreen{flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;padding:20px;gap:18px}
+
+.lobby-card{background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:26px;width:100%;max-width:500px}
+.lobby-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.lobby-head h2{font-size:1.25rem;font-weight:800}
+
+.code-box{display:flex;align-items:center;gap:12px;background:var(--card2);
+  border:1px solid var(--border);border-radius:11px;padding:11px 16px;margin-bottom:18px}
+.code-lbl{font-size:.78rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1px}
+.code-val{font-family:'Baloo 2',cursive;font-size:2rem;font-weight:800;
+  color:var(--gold);letter-spacing:6px;flex:1}
+.copy-btn{background:var(--card);border:1px solid var(--border);border-radius:8px;
+  padding:6px 11px;color:var(--sub);font-size:.78rem;font-weight:700;transition:all .2s}
+.copy-btn:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));
+  gap:9px;margin-bottom:18px}
+.pslot{background:var(--card2);border:1.5px dashed var(--border);border-radius:10px;
+  padding:12px 8px;text-align:center;transition:all .25s}
+.pslot.filled{border-style:solid;border-color:var(--green);animation:popIn .22s ease}
+.pslot.host{border-color:var(--gold)}
+.av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:1.15rem;font-weight:800;margin:0 auto 5px}
+.pname{font-size:.8rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ptag{font-size:.7rem;color:var(--sub);margin-top:1px}
+.pslot:not(.filled) .av{background:var(--bg);color:var(--border);font-size:1.3rem}
+.pslot:not(.filled) .pname{color:var(--sub);font-style:italic}
+
+.lpills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+.pill{background:var(--card2);border:1px solid var(--border);border-radius:20px;
+  padding:4px 11px;font-size:.78rem;font-weight:700;color:var(--sub)}
+.pill span{color:var(--text)}
+
+.wait-txt{text-align:center;color:var(--sub);font-size:.88rem;margin-bottom:14px}
+.dots::after{content:'...';animation:dotAnim 1.4s infinite}
+@keyframes dotAnim{0%,25%{content:'.'}26%,50%{content:'..'}51%,100%{content:'...'}}
+
+/* ══════════════════════════════════════
+   GAME
+══════════════════════════════════════ */
+#gameScreen{flex-direction:column;min-height:100vh;overflow:hidden}
+
+/* top bar */
+.gtop{display:flex;align-items:center;justify-content:space-between;
+  padding:9px 14px;background:var(--card);border-bottom:1px solid var(--border);
+  gap:10px;flex-shrink:0;z-index:10}
+.gtop-round{font-size:.82rem;font-weight:700;color:var(--sub)}
+.gtop-round span{color:var(--text)}
+.word-wrap{flex:1;text-align:center}
+.word-hint{font-family:'Baloo 2',cursive;font-size:clamp(1.1rem,3vw,1.7rem);
+  font-weight:800;letter-spacing:5px;transition:color .3s}
+.word-hint.revealed{color:var(--red)}
+
+/* timer */
+.timer-ring{width:42px;height:42px;flex-shrink:0}
+.timer-ring svg{transform:rotate(-90deg)}
+.timer-ring circle{transition:stroke-dashoffset .9s linear,stroke .5s}
+#timerNum{font-size:.82rem;font-weight:800;text-anchor:middle;dominant-baseline:middle;
+  fill:var(--text)}
+
+/* main grid */
+.gmain{display:grid;grid-template-columns:170px 1fr 255px;flex:1;overflow:hidden;min-height:0}
+@media(max-width:860px){
+  .gmain{grid-template-columns:1fr;grid-template-rows:auto 1fr auto}
+}
+
+/* players panel */
+.ppanel{background:var(--card);border-right:1px solid var(--border);
+  overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:7px}
+@media(max-width:860px){
+  .ppanel{border-right:none;border-bottom:1px solid var(--border);
+    flex-direction:row;overflow-x:auto;overflow-y:visible;padding:8px}
+}
+.pcard{background:var(--card2);border:1.5px solid var(--border);border-radius:9px;
+  padding:9px;transition:all .2s;flex-shrink:0}
+.pcard.drawing{border-color:var(--blue);background:rgba(0,145,194,.1)}
+.pcard.guessed{border-color:var(--green);background:rgba(0,166,81,.1)}
+.pcard.isme{border-color:var(--gold)}
+.pcard-row{display:flex;align-items:center;gap:7px}
+.pc-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:.82rem;font-weight:800;flex-shrink:0}
+.pc-info{flex:1;min-width:0}
+.pc-name{font-size:.78rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-status{font-size:.68rem;color:var(--sub)}
+.pc-score{font-size:.88rem;font-weight:800;color:var(--gold)}
+
+/* canvas area */
+.carea{display:flex;flex-direction:column;align-items:center;
+  background:var(--bg);padding:10px;gap:10px;position:relative;overflow:hidden}
+.cwrap{position:relative;border-radius:11px;overflow:hidden;
+  box-shadow:0 6px 28px rgba(0,0,0,.4);width:100%;max-width:680px;background:#fff}
+#gameCanvas{display:block;cursor:crosshair;touch-action:none}
+
+/* overlay on canvas */
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;background:rgba(13,17,23,.88);
+  border-radius:11px;gap:14px;backdrop-filter:blur(4px);z-index:5}
+.overlay h3{font-size:1.3rem;font-weight:800}
+.overlay p{color:var(--sub);font-size:.9rem;text-align:center;padding:0 16px}
+.overlay.hidden{display:none}
+
+/* word choices */
+.wchoices{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.wbtn{padding:10px 20px;border-radius:10px;background:var(--card2);
+  border:2px solid var(--border);color:var(--text);font-size:1rem;font-weight:700;
+  transition:all .18s}
+.wbtn:hover{border-color:var(--blue);background:rgba(0,145,194,.15);
+  transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,145,194,.28)}
+
+/* toolbar */
+.toolbar{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:center;
+  background:var(--card);border-radius:11px;padding:9px 12px;
+  border:1px solid var(--border);width:100%;max-width:680px}
+.toolbar.hidden{display:none!important}
+
+.colors{display:flex;gap:4px;flex-wrap:wrap;max-width:155px}
+.cbtn{width:22px;height:22px;border-radius:50%;border:2.5px solid transparent;
+  cursor:pointer;flex-shrink:0;transition:transform .12s,border-color .12s}
+.cbtn:hover{transform:scale(1.22)}
+.cbtn.sel{border-color:#fff!important;transform:scale(1.18)}
+
+.tsep{width:1px;height:32px;background:var(--border)}
+
+.sizes{display:flex;gap:5px;align-items:center}
+.sbtn{width:28px;height:28px;border-radius:7px;background:var(--card2);
+  border:1.5px solid var(--border);color:var(--text);font-size:.8rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;transition:all .13s}
+.sbtn.sel{background:var(--blue);border-color:var(--blue)}
+
+.tools{display:flex;gap:5px}
+.tbtn{padding:5px 10px;border-radius:7px;background:var(--card2);
+  border:1.5px solid var(--border);color:var(--text);font-size:.82rem;font-weight:700;
+  transition:all .13s;display:flex;align-items:center;gap:3px}
+.tbtn:hover{background:var(--card)}
+.tbtn.sel{background:var(--blue);border-color:var(--blue)}
+.tbtn.del:hover{background:var(--red);border-color:var(--red)}
+
+/* chat */
+.cpanel{display:flex;flex-direction:column;background:var(--card);
+  border-left:1px solid var(--border);overflow:hidden}
+@media(max-width:860px){
+  .cpanel{border-left:none;border-top:1px solid var(--border);max-height:210px}
+}
+.chead{padding:10px 14px;border-bottom:1px solid var(--border);
+  font-size:.8rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1px}
+.cmsgs{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;
+  gap:5px;scroll-behavior:smooth}
+.cmsgs::-webkit-scrollbar{width:3px}
+.cmsgs::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+.cmsg{font-size:.83rem;line-height:1.4;animation:fadeUp .18s ease}
+.cmsg .mname{font-weight:800}
+.cmsg.correct{background:rgba(0,166,81,.14);border:1px solid rgba(0,166,81,.28);
+  border-radius:7px;padding:5px 9px}
+.cmsg.correct .mname{color:var(--green)}
+.cmsg.close{color:#ffa500}
+.cmsg.sys{color:var(--sub);font-style:italic;text-align:center;font-size:.78rem}
+.cinput-row{padding:9px;border-top:1px solid var(--border);display:flex;gap:7px}
+.cinput{flex:1;background:var(--card2);border:1.5px solid var(--border);border-radius:9px;
+  padding:8px 11px;color:var(--text);font-size:.88rem;font-weight:600;transition:border-color .2s}
+.cinput:focus{border-color:var(--blue)}
+.cinput::placeholder{color:var(--sub)}
+.cinput:disabled{opacity:.45}
+.csend{padding:8px 13px;border-radius:9px;background:var(--blue);color:#fff;
+  font-size:.88rem;font-weight:700;transition:filter .13s}
+.csend:hover{filter:brightness(1.1)}
+.csend:disabled{opacity:.4;cursor:not-allowed}
+
+/* ══════════════════════════════════════
+   MODALS
+══════════════════════════════════════ */
+.modal-bg{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(13,17,23,.78);z-index:100;backdrop-filter:blur(5px);
+  animation:fadeIn .18s ease}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:18px;
+  padding:32px;text-align:center;animation:popIn .28s ease;max-width:420px;width:90%}
+.modal h3{font-size:.95rem;font-weight:700;color:var(--sub);margin-bottom:10px}
+.reveal-word{font-family:'Baloo 2',cursive;font-size:2.5rem;font-weight:800;
+  color:var(--red);margin-bottom:18px}
+.slist{display:flex;flex-direction:column;gap:6px;margin-bottom:0}
+.srow{display:flex;align-items:center;background:var(--card2);border-radius:8px;
+  padding:8px 14px;gap:10px}
+.srow.first{border:1.5px solid var(--gold);background:rgba(245,200,66,.08)}
+.srank{width:22px;font-weight:800;color:var(--sub);text-align:center}
+.sname{flex:1;font-weight:700;text-align:left}
+.spts{font-weight:800;color:var(--gold);font-size:1rem}
+
+/* ══════════════════════════════════════
+   GAME OVER
+══════════════════════════════════════ */
+#gameOverScreen{flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;padding:20px;gap:20px}
+.go-card{background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:30px;width:100%;max-width:460px;text-align:center;animation:popIn .45s ease}
+.trophy{font-size:3.2rem;margin-bottom:6px}
+.winner{font-family:'Baloo 2',cursive;font-size:1.9rem;font-weight:800;color:var(--gold)}
+.winner-sub{color:var(--sub);font-size:.92rem;margin-bottom:22px}
+.go-btns{display:flex;gap:9px;margin-top:20px}
+
+/* ══════════════════════════════════════
+   TOAST
+══════════════════════════════════════ */
+#toasts{position:fixed;top:66px;left:50%;transform:translateX(-50%);
+  z-index:200;display:flex;flex-direction:column;gap:7px;pointer-events:none;align-items:center}
+.toast{background:var(--card);border:1px solid var(--border);border-radius:9px;
+  padding:9px 16px;font-size:.88rem;font-weight:700;white-space:nowrap;
+  animation:toastIn .25s ease}
+.toast.ok{border-color:var(--green);color:var(--green);background:rgba(0,166,81,.1)}
+.toast.bad{border-color:var(--red);color:var(--red);background:rgba(239,51,64,.1)}
+.toast.info{border-color:var(--blue);color:var(--blue);background:rgba(0,145,194,.1)}
+.toast.warm{border-color:#ffa500;color:#ffa500;background:rgba(255,165,0,.1)}
+
+/* ══════════════════════════════════════
+   AVATAR COLORS
+══════════════════════════════════════ */
+.a0{background:rgba(0,145,194,.22);color:#0091c2}
+.a1{background:rgba(239,51,64,.22);color:#ef3340}
+.a2{background:rgba(0,166,81,.22);color:#00a651}
+.a3{background:rgba(245,200,66,.22);color:#f5c842}
+.a4{background:rgba(153,102,255,.22);color:#9966ff}
+.a5{background:rgba(255,105,180,.22);color:#ff69b4}
+.a6{background:rgba(0,210,210,.22);color:#00d2d2}
+.a7{background:rgba(255,140,0,.22);color:#ff8c00}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeDown{from{opacity:0;transform:translateY(-18px)}to{opacity:1;transform:none}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes popIn{from{opacity:0;transform:scale(.84)}to{opacity:1;transform:scale(1)}}
+@keyframes toastIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+
+.spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--blue);
+  border-radius:50%;animation:spin .65s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HOME -->
+<div id="homeScreen" class="screen active">
+  <div class="logo">
+    <h1>CizTap</h1>
+    <p>Çiz. Tap. Gül.</p>
+    <div class="flag-bar"><span></span><span></span><span></span></div>
+  </div>
+  <div class="home-card">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('c')">Otaq Yarat</button>
+      <button class="tab" onclick="switchTab('j')">Qoşul</button>
+    </div>
+    <div id="tabC" class="tc active">
+      <div class="ig"><label>Adınız</label>
+        <input id="cName" class="inp" placeholder="Oyunçu adı..." maxlength="16"></div>
+      <div class="row2">
+        <div class="ig"><label>Raund</label>
+          <select id="cRounds" class="inp">
+            <option value="2">2 raund</option>
+            <option value="3" selected>3 raund</option>
+            <option value="4">4 raund</option>
+            <option value="5">5 raund</option>
+          </select></div>
+        <div class="ig"><label>Vaxt</label>
+          <select id="cTime" class="inp">
+            <option value="60">60 san</option>
+            <option value="80" selected>80 san</option>
+            <option value="100">100 san</option>
+            <option value="120">120 san</option>
+          </select></div>
+      </div>
+      <button class="btn btn-g" onclick="createRoom()">Otaq Yarat →</button>
+    </div>
+    <div id="tabJ" class="tc">
+      <div class="ig"><label>Adınız</label>
+        <input id="jName" class="inp" placeholder="Oyunçu adı..." maxlength="16"></div>
+      <div class="ig"><label>Otaq Kodu (5 rəqəm)</label>
+        <!-- FIX: only digits, 5 chars -->
+        <input id="jCode" class="inp" placeholder="12345" maxlength="5" inputmode="numeric"
+          style="letter-spacing:6px;font-size:1.4rem;font-weight:800;font-family:'Baloo 2',cursive;text-align:center"></div>
+      <button class="btn btn-b" onclick="joinRoom()">Qoşul →</button>
+    </div>
+    <div id="homeErr" class="err"></div>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="lobbyScreen" class="screen">
+  <div class="lobby-card">
+    <div class="lobby-head"><h2>🎨 Oyun Otağı</h2></div>
+    <div class="code-box">
+      <div>
+        <div class="code-lbl">Otaq Kodu</div>
+        <div class="code-val" id="lCode">-----</div>
+      </div>
+      <button class="copy-btn" onclick="copyCode()">Kopyala</button>
+    </div>
+    <div id="pgrid" class="pgrid"></div>
+    <div class="lpills">
+      <div class="pill">🔄 <span id="lRounds">3</span> raund</div>
+      <div class="pill">⏱ <span id="lTime">80</span> san</div>
+      <div class="pill">👥 maks 8</div>
+    </div>
+    <div id="lwait" class="wait-txt">Oyunçular gözlənilir<span class="dots"></span></div>
+    <button id="startBtn" class="btn btn-g" style="display:none" onclick="emitStart()">Oyunu Başlat 🎮</button>
+    <div id="notHost" style="display:none;text-align:center;color:var(--sub);font-size:.88rem;font-weight:600">Ev sahibi oyunu başladacaq...</div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="gameScreen" class="screen">
+  <div class="gtop">
+    <div class="gtop-round">Raund <span id="gRound">1</span>/<span id="gMaxR">3</span></div>
+    <div class="word-wrap">
+      <div class="word-hint" id="wordHint">· · ·</div>
+    </div>
+    <!-- SVG Timer Ring -->
+    <svg class="timer-ring" viewBox="0 0 44 44">
+      <circle cx="22" cy="22" r="18" fill="none" stroke="#333" stroke-width="4"/>
+      <circle id="timerArc" cx="22" cy="22" r="18" fill="none" stroke="#00a651"
+        stroke-width="4" stroke-linecap="round"
+        stroke-dasharray="113.1" stroke-dashoffset="0"/>
+      <text id="timerNum" x="22" y="22" font-family="Nunito,sans-serif" font-size="10" font-weight="800" fill="#e6edf3" text-anchor="middle" dominant-baseline="middle">--</text>
+    </svg>
+  </div>
+
+  <div class="gmain">
+    <!-- Players -->
+    <div class="ppanel" id="ppanel"></div>
+
+    <!-- Canvas area -->
+    <div class="carea">
+      <div class="cwrap" id="cwrap">
+        <canvas id="gameCanvas"></canvas>
+        <div class="overlay" id="cOverlay">
+          <div class="spinner"></div>
+          <p>Yüklənir...</p>
+        </div>
+      </div>
+
+      <!-- Toolbar (only for drawer) -->
+      <div class="toolbar hidden" id="toolbar">
+        <div class="colors" id="colorsEl"></div>
+        <div class="tsep"></div>
+        <div class="sizes">
+          <div style="font-size:.7rem;color:var(--sub);font-weight:700">QAT</div>
+          <button class="sbtn" data-sz="3" onclick="setSize(3)">S</button>
+          <button class="sbtn sel" data-sz="10" onclick="setSize(10)">M</button>
+          <button class="sbtn" data-sz="20" onclick="setSize(20)">L</button>
+          <button class="sbtn" data-sz="35" onclick="setSize(35)">XL</button>
+        </div>
+        <div class="tsep"></div>
+        <div class="tools">
+          <button class="tbtn sel" id="toolBrush" onclick="setTool('brush')">🖌️</button>
+          <button class="tbtn" id="toolEraser" onclick="setTool('eraser')">⬜</button>
+          <button class="tbtn" id="toolFill" onclick="setTool('fill')">🪣</button>
+          <button class="tbtn del" onclick="doClear()">🗑️ Sil</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="cpanel">
+      <div class="chead">💬 Söhbət & Tapın</div>
+      <div class="cmsgs" id="cmsgs"></div>
+      <div class="cinput-row">
+        <input id="cinput" class="cinput" placeholder="Cavabı yazın..." maxlength="80"
+          onkeydown="if(event.key==='Enter')sendGuess()">
+        <button id="csend" class="csend" onclick="sendGuess()">↵</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameOverScreen" class="screen">
+  <div class="go-card">
+    <div class="trophy">🏆</div>
+    <div class="winner" id="goWinner">—</div>
+    <div class="winner-sub">Qalib!</div>
+    <div class="slist" id="goScores"></div>
+    <div class="go-btns">
+      <button class="btn btn-gray" style="flex:1" onclick="goHome()">Ana Səhifə</button>
+      <button id="goPlayAgain" class="btn btn-g" style="display:none;flex:1" onclick="emitPlayAgain()">Yenidən 🎮</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- #app -->
+<div id="toasts"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════
+const EMOJIS = ['🦊','🐯','🦁','🐻','🐼','🦉','🦅','🐬'];
+const COLORS = [
+  '#111111','#ffffff','#ef3340','#0091c2','#00a651','#f5c842',
+  '#ff6600','#9966ff','#ff69b4','#00d2d2','#8b4513','#888888',
+  '#ffaaaa','#aad4ff','#aaffcc','#ffeeaa',
+];
+
+const CIRC = 2 * Math.PI * 18; // svg circle circumference
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+const S = {
+  socket: null,
+  myId: null,
+  myName: '',
+  code: '',
+  players: [],
+  isHost: false,
+  isDrawer: false,
+  myWord: '',
+  drawTime: 80,
+  maxRounds: 3,
+  guessedCorrect: false,
+
+  // drawing
+  tool: 'brush',
+  color: '#111111',
+  size: 10,
+  painting: false,
+  lx: 0, ly: 0,
+  ctx: null,
+  canvas: null,
+};
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+window.addEventListener('load', function() {
+  S.canvas = document.getElementById('gameCanvas');
+  S.ctx = S.canvas.getContext('2d');
+
+  // Build color buttons
+  const colEl = document.getElementById('colorsEl');
+  COLORS.forEach(function(c) {
+    const b = document.createElement('button');
+    b.className = 'cbtn' + (c === S.color ? ' sel' : '');
+    b.style.background = c;
+    if (c === '#ffffff') b.style.boxShadow = 'inset 0 0 0 1px #555';
+    b.addEventListener('click', function() {
+      S.color = c;
+      S.tool = 'brush';
+      updateToolUI();
+    });
+    colEl.appendChild(b);
+  });
+
+  // Size buttons
+  document.querySelectorAll('.sbtn').forEach(function(b) {
+    b.addEventListener('click', function() {
+      S.size = parseInt(b.getAttribute('data-sz'));
+      document.querySelectorAll('.sbtn').forEach(function(x) { x.classList.remove('sel'); });
+      b.classList.add('sel');
+    });
+  });
+
+  // Canvas events – FIX: proper coordinate scaling
+  S.canvas.addEventListener('mousedown', onDown);
+  S.canvas.addEventListener('mousemove', onMove);
+  S.canvas.addEventListener('mouseup', onUp);
+  S.canvas.addEventListener('mouseleave', onUp);
+  S.canvas.addEventListener('touchstart', function(e) {
+    e.preventDefault(); onDown(touchToMouse(e));
+  }, { passive: false });
+  S.canvas.addEventListener('touchmove', function(e) {
+    e.preventDefault(); onMove(touchToMouse(e));
+  }, { passive: false });
+  S.canvas.addEventListener('touchend', function(e) {
+    e.preventDefault(); onUp();
+  }, { passive: false });
+
+  // keyboard shortcuts
+  document.getElementById('cName').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') createRoom();
+  });
+  document.getElementById('jName').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') joinRoom();
+  });
+  document.getElementById('jCode').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') joinRoom();
+  });
+  // FIX: only digits in code field
+  document.getElementById('jCode').addEventListener('input', function(e) {
+    e.target.value = e.target.value.replace(/\D/g, '');
+  });
+
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+  connectSocket();
+});
+
+function resizeCanvas() {
+  const wrap = document.getElementById('cwrap');
+  const w = wrap.clientWidth;
+  if (!w) return;
+  const h = Math.round(w * 0.6);
+  S.canvas.width = w;
+  S.canvas.height = h;
+  wrap.style.height = h + 'px';
+  fillWhite();
+}
+
+function fillWhite() {
+  S.ctx.fillStyle = '#ffffff';
+  S.ctx.fillRect(0, 0, S.canvas.width, S.canvas.height);
+}
+
+// ══════════════════════════════════════════════
+//  CANVAS DRAWING – FIX: correct coordinate mapping
+// ══════════════════════════════════════════════
+function getPos(e) {
+  const rect = S.canvas.getBoundingClientRect();
+  const sx = S.canvas.width / rect.width;
+  const sy = S.canvas.height / rect.height;
+  return { x: (e.clientX - rect.left) * sx, y: (e.clientY - rect.top) * sy };
+}
+
+function touchToMouse(e) {
+  const t = e.touches[0] || e.changedTouches[0];
+  return { clientX: t.clientX, clientY: t.clientY };
+}
+
+function onDown(e) {
+  if (!S.isDrawer) return;
+  const { x, y } = getPos(e);
+  S.painting = true;
+  S.lx = x; S.ly = y;
+
+  if (S.tool === 'fill') {
+    S.painting = false;
+    floodFill(Math.round(x), Math.round(y), S.color);
+    S.socket.emit('fill', { x: Math.round(x), y: Math.round(y), color: S.color });
+    return;
+  }
+
+  // draw a dot at click point
+  localDraw({ type: 'dot', x: x, y: y, color: S.tool === 'eraser' ? '#ffffff' : S.color, sz: S.size });
+  S.socket.emit('draw', { type: 'dot', x: x, y: y, color: S.tool === 'eraser' ? '#ffffff' : S.color, sz: S.size });
+}
+
+function onMove(e) {
+  if (!S.painting || !S.isDrawer) return;
+  const { x, y } = getPos(e);
+  const color = S.tool === 'eraser' ? '#ffffff' : S.color;
+  localDraw({ type: 'line', x0: S.lx, y0: S.ly, x1: x, y1: y, color: color, sz: S.size });
+  S.socket.emit('draw', { type: 'line', x0: S.lx, y0: S.ly, x1: x, y1: y, color: color, sz: S.size });
+  S.lx = x; S.ly = y;
+}
+
+function onUp() { S.painting = false; }
+
+function localDraw(d) {
+  const ctx = S.ctx;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = d.color;
+  ctx.fillStyle = d.color;
+  ctx.lineWidth = d.sz;
+  if (d.type === 'dot') {
+    ctx.beginPath();
+    ctx.arc(d.x, d.y, d.sz / 2, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(d.x0, d.y0);
+    ctx.lineTo(d.x1, d.y1);
+    ctx.stroke();
+  }
+}
+
+// ── FLOOD FILL ────────────────────────────────
+function hexToRgb(hex) {
+  hex = hex.replace('#', '');
+  if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+  return [parseInt(hex.slice(0,2),16), parseInt(hex.slice(2,4),16), parseInt(hex.slice(4,6),16)];
+}
+
+function floodFill(sx, sy, fillHex) {
+  const c = S.canvas, ctx = S.ctx;
+  if (sx < 0 || sy < 0 || sx >= c.width || sy >= c.height) return;
+  const img = ctx.getImageData(0, 0, c.width, c.height);
+  const d = img.data, W = c.width;
+  const idx = (sy * W + sx) * 4;
+  const tR = d[idx], tG = d[idx+1], tB = d[idx+2];
+  const [fR, fG, fB] = hexToRgb(fillHex);
+  if (tR === fR && tG === fG && tB === fB) return;
+
+  const stack = [[sx, sy]];
+  const vis = new Uint8Array(c.width * c.height);
+
+  while (stack.length) {
+    const pt = stack.pop();
+    const px = pt[0], py = pt[1];
+    if (px < 0 || px >= W || py < 0 || py >= c.height) continue;
+    const i = py * W + px;
+    if (vis[i]) continue;
+    const pi = i * 4;
+    if (Math.abs(d[pi]-tR) > 30 || Math.abs(d[pi+1]-tG) > 30 || Math.abs(d[pi+2]-tB) > 30) continue;
+    vis[i] = 1;
+    d[pi] = fR; d[pi+1] = fG; d[pi+2] = fB; d[pi+3] = 255;
+    stack.push([px+1,py],[px-1,py],[px,py+1],[px,py-1]);
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+// ══════════════════════════════════════════════
+//  TOOL UI
+// ══════════════════════════════════════════════
+function setTool(t) {
+  S.tool = t;
+  updateToolUI();
+}
+
+function setSize(sz) {
+  S.size = sz;
+  document.querySelectorAll('.sbtn').forEach(function(b) {
+    b.classList.toggle('sel', parseInt(b.getAttribute('data-sz')) === sz);
+  });
+}
+
+function updateToolUI() {
+  document.getElementById('toolBrush').classList.toggle('sel', S.tool === 'brush');
+  document.getElementById('toolEraser').classList.toggle('sel', S.tool === 'eraser');
+  document.getElementById('toolFill').classList.toggle('sel', S.tool === 'fill');
+  document.querySelectorAll('.cbtn').forEach(function(b) {
+    b.classList.toggle('sel', b.style.background === S.color && S.tool === 'brush');
+  });
+}
+
+function doClear() {
+  if (!S.isDrawer) return;
+  fillWhite();
+  S.socket.emit('clear');
+}
+
+// ══════════════════════════════════════════════
+//  SOCKET
+// ══════════════════════════════════════════════
+function connectSocket() {
+  S.socket = io({ transports: ['websocket', 'polling'] });
+  const sk = S.socket;
+
+  sk.on('connect', function() { S.myId = sk.id; });
+
+  sk.on('err', function(msg) {
+    showErr(msg);
+    toast(msg, 'bad');
+  });
+
+  sk.on('roomReady', function(data) {
+    S.code = data.code;
+    S.players = data.players;
+    S.isHost = data.isHost;
+    S.maxRounds = data.settings.rounds;
+    S.drawTime = data.settings.drawTime;
+    showLobby();
+  });
+
+  sk.on('playerUpdate', function(data) {
+    S.players = data.players;
+    renderLobbyPlayers();
+    renderGamePlayers();
+    if (data.msg) sysMsg(data.msg);
+  });
+
+  sk.on('gameStarted', function() {
+    screen('gameScreen');
+    fillWhite();
+    clearChat();
+    S.isDrawer = false;
+    S.guessedCorrect = false;
+    setDrawer(false);
+    showOverlay('', '');
+    sysMsg('Oyun başladı! 🎮');
+  });
+
+  // FIX: overlay for waiting drawer
+  sk.on('waitingWord', function(data) {
+    S.isDrawer = data.drawerId === S.myId;
+    renderGamePlayers(data.drawerId);
+    if (!S.isDrawer) {
+      showOverlay(data.drawerName + ' söz seçir...', '⏳ Bir an gözləyin');
+    }
+    document.getElementById('wordHint').textContent = '_ _ _';
+  });
+
+  // FIX: word choice shown to drawer inside overlay
+  sk.on('chooseWord', function(data) {
+    S.isDrawer = true;
+    showWordChoice(data.words);
+  });
+
+  sk.on('yourWord', function(data) {
+    S.myWord = data.word;
+    document.getElementById('wordHint').textContent = data.word;
+  });
+
+  sk.on('turnStart', function(data) {
+    S.isDrawer = data.drawerId === S.myId;
+    S.guessedCorrect = false;
+    fillWhite();
+
+    document.getElementById('gRound').textContent = data.round;
+    document.getElementById('gMaxR').textContent = data.maxRounds;
+    document.getElementById('wordHint').textContent = data.hint;
+    document.getElementById('wordHint').classList.remove('revealed');
+
+    hideOverlay();
+    setTimerUI(data.timeLeft, data.timeLeft);
+    renderGamePlayers(data.drawerId);
+    setDrawer(S.isDrawer);
+
+    if (S.isDrawer) {
+      sysMsg('Siz çizirsiniz! Söz: "' + S.myWord + '"');
+    } else {
+      S.myWord = '';
+      sysMsg(data.drawerName + ' çizir. Tapmağa çalışın!');
+    }
+  });
+
+  sk.on('tick', function(data) {
+    setTimerUI(data.t, S.drawTime);
+  });
+
+  sk.on('hintUpdate', function(data) {
+    if (!S.isDrawer) {
+      document.getElementById('wordHint').textContent = data.hint;
+    }
+  });
+
+  sk.on('draw', function(data) {
+    if (!S.isDrawer) localDraw(data);
+  });
+
+  sk.on('fill', function(data) {
+    if (!S.isDrawer) floodFill(data.x, data.y, data.color);
+  });
+
+  sk.on('clearCanvas', function() {
+    fillWhite();
+    sysMsg('Kanvas silindi.');
+  });
+
+  sk.on('correctGuess', function(data) {
+    S.players = S.players.map(function(p) {
+      const found = data.scores.find(function(x) { return x.id === p.id; });
+      return found ? Object.assign({}, p, { score: found.score }) : p;
+    });
+    renderGamePlayers();
+    const isMe = data.id === S.myId;
+    if (isMe) {
+      S.guessedCorrect = true;
+      setGuessed(true);
+    }
+    addChat({ name: data.name, text: '✅ Tapdı! (+' + data.pts + ' xal)', correct: true });
+    toast(isMe ? '🎉 Düzgün! +' + data.pts + ' xal!' : data.name + ' tapdı!', isMe ? 'ok' : 'info');
+  });
+
+  sk.on('chat', function(data) {
+    if (data.close) {
+      addChat({ name: data.name, text: data.text + ' (çox yaxın! 🔥)', close: true });
+      if (data.name !== S.myName) toast('🔥 Çox yaxın!', 'warm');
+    } else {
+      addChat({ name: data.name, text: data.text });
+    }
+  });
+
+  sk.on('turnEnd', function(data) {
+    S.isDrawer = false;
+    setDrawer(false);
+    setGuessed(false);
+    S.myWord = '';
+    document.getElementById('wordHint').textContent = data.word;
+    document.getElementById('wordHint').classList.add('revealed');
+    showWordReveal(data.word, data.scores);
+    sysMsg('Cavab: ' + data.word);
+    S.players = S.players.map(function(p) {
+      const found = data.scores.find(function(x) { return x.id === p.id; });
+      return found ? Object.assign({}, p, { score: found.score }) : p;
+    });
+    renderGamePlayers();
+  });
+
+  sk.on('gameOver', function(data) {
+    setTimeout(function() { showGameOver(data.scores, data.winner); }, 5600);
+  });
+
+  sk.on('gamePaused', function() {
+    showOverlay('⏸ Oyun dayandı', 'Yeni oyunçu gözlənilir...');
+    toast('Oyunçu sayı azaldı.', 'bad');
+  });
+}
+
+// ══════════════════════════════════════════════
+//  UI HELPERS
+// ══════════════════════════════════════════════
+function screen(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  if (id === 'gameScreen') setTimeout(resizeCanvas, 50);
+}
+
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach(function(b, i) {
+    b.classList.toggle('active', (i === 0 && t === 'c') || (i === 1 && t === 'j'));
+  });
+  document.getElementById('tabC').classList.toggle('active', t === 'c');
+  document.getElementById('tabJ').classList.toggle('active', t === 'j');
+  clearErr();
+}
+
+function showErr(msg) {
+  document.getElementById('homeErr').textContent = msg;
+  setTimeout(function() { document.getElementById('homeErr').textContent = ''; }, 4000);
+}
+function clearErr() { document.getElementById('homeErr').textContent = ''; }
+
+function showLobby() {
+  screen('lobbyScreen');
+  document.getElementById('lCode').textContent = S.code;
+  document.getElementById('lRounds').textContent = S.maxRounds;
+  document.getElementById('lTime').textContent = S.drawTime;
+  renderLobbyPlayers();
+  document.getElementById('startBtn').style.display = S.isHost ? 'block' : 'none';
+  document.getElementById('notHost').style.display = S.isHost ? 'none' : 'block';
+}
+
+function renderLobbyPlayers() {
+  const g = document.getElementById('pgrid');
+  g.innerHTML = '';
+  for (let i = 0; i < 8; i++) {
+    const p = S.players[i];
+    const div = document.createElement('div');
+    if (p) {
+      const isMe = p.id === S.myId;
+      div.className = 'pslot filled' + (p.isHost ? ' host' : '');
+      div.innerHTML = '<div class="av a' + i + '">' + EMOJIS[i] + '</div>' +
+        '<div class="pname">' + esc(p.name) + (isMe ? ' (siz)' : '') + '</div>' +
+        '<div class="ptag">' + (p.isHost ? '👑' : '🎮') + '</div>';
+    } else {
+      div.className = 'pslot';
+      div.innerHTML = '<div class="av a' + i + '">+</div><div class="pname">Gözlənilir...</div>';
+    }
+    g.appendChild(div);
+  }
+}
+
+function renderGamePlayers(drawerId) {
+  const panel = document.getElementById('ppanel');
+  panel.innerHTML = '';
+  S.players.forEach(function(p, i) {
+    const isDrawing = drawerId ? p.id === drawerId : false;
+    const isMe = p.id === S.myId;
+    const div = document.createElement('div');
+    div.className = 'pcard' + (isDrawing ? ' drawing' : '') + (isMe ? ' isme' : '');
+    div.innerHTML = '<div class="pcard-row">' +
+      '<div class="pc-av a' + i + '">' + EMOJIS[i] + '</div>' +
+      '<div class="pc-info">' +
+        '<div class="pc-name">' + esc(p.name) + (isMe ? ' ★' : '') + '</div>' +
+        '<div class="pc-status">' + (isDrawing ? '🖌️' : '') + '</div>' +
+      '</div>' +
+      '<div class="pc-score">' + p.score + '</div>' +
+    '</div>';
+    panel.appendChild(div);
+  });
+}
+
+function showOverlay(title, sub) {
+  const ov = document.getElementById('cOverlay');
+  ov.classList.remove('hidden');
+  ov.innerHTML = (title ? '<h3>' + title + '</h3>' : '<div class="spinner"></div>') +
+    (sub ? '<p>' + sub + '</p>' : '');
+}
+
+function hideOverlay() {
+  document.getElementById('cOverlay').classList.add('hidden');
+}
+
+// FIX: word choice shown properly
+function showWordChoice(words) {
+  const ov = document.getElementById('cOverlay');
+  ov.classList.remove('hidden');
+  let html = '<h3>✏️ Bir söz seçin</h3><p style="color:var(--sub);margin-bottom:4px">15 saniyə — seçməsəniz avtomatik seçiləcək</p><div class="wchoices">';
+  words.forEach(function(w) {
+    html += '<button class="wbtn" onclick="chooseWord(\'' + esc(w) + '\')">' + esc(w) + '</button>';
+  });
+  html += '</div>';
+  ov.innerHTML = html;
+}
+
+function chooseWord(w) {
+  S.socket.emit('wordChosen', { word: w });
+}
+
+function setDrawer(isDrawer) {
+  document.getElementById('toolbar').classList.toggle('hidden', !isDrawer);
+  const ci = document.getElementById('cinput');
+  const cs = document.getElementById('csend');
+  ci.disabled = isDrawer;
+  cs.disabled = isDrawer;
+  if (!isDrawer) ci.placeholder = 'Cavabı yazın...';
+}
+
+function setGuessed(guessed) {
+  const ci = document.getElementById('cinput');
+  const cs = document.getElementById('csend');
+  if (guessed) {
+    ci.disabled = true;
+    cs.disabled = true;
+    ci.placeholder = 'Tapdınız! 🎉';
+  }
+}
+
+// ── TIMER UI (SVG ring) ──────────────────────
+function setTimerUI(t, total) {
+  const arc = document.getElementById('timerArc');
+  const num = document.getElementById('timerNum');
+  num.textContent = t;
+  const pct = Math.max(0, t / total);
+  arc.setAttribute('stroke-dashoffset', CIRC * (1 - pct));
+  arc.setAttribute('stroke', pct > 0.5 ? '#00a651' : pct > 0.25 ? '#ffa500' : '#ef3340');
+}
+
+// ── WORD REVEAL MODAL ──────────────────────
+function showWordReveal(word, scores) {
+  const div = document.createElement('div');
+  div.className = 'modal-bg';
+  const sorted = scores.slice().sort(function(a, b) { return b.score - a.score; });
+  div.innerHTML = '<div class="modal">' +
+    '<h3>Düzgün cavab</h3>' +
+    '<div class="reveal-word">' + esc(word) + '</div>' +
+    '<div class="slist">' +
+    sorted.map(function(s, i) {
+      return '<div class="srow ' + (i === 0 ? 'first' : '') + '">' +
+        '<div class="srank">' + (['🥇','🥈','🥉'][i] || (i+1)+'.') + '</div>' +
+        '<div class="sname">' + esc(s.name) + '</div>' +
+        '<div class="spts">' + s.score + '</div>' +
+      '</div>';
+    }).join('') +
+    '</div></div>';
+  div.addEventListener('click', function() { div.remove(); });
+  document.body.appendChild(div);
+  setTimeout(function() { if (div.parentNode) div.remove(); }, 5400);
+}
+
+function showGameOver(scores, winner) {
+  screen('gameOverScreen');
+  document.getElementById('goWinner').textContent = winner;
+  const sorted = scores.slice().sort(function(a, b) { return b.score - a.score; });
+  document.getElementById('goScores').innerHTML = sorted.map(function(s, i) {
+    return '<div class="srow ' + (i === 0 ? 'first' : '') + '">' +
+      '<div class="srank">' + (['🥇','🥈','🥉'][i] || (i+1)+'.') + '</div>' +
+      '<div class="sname">' + esc(s.name) + '</div>' +
+      '<div class="spts">' + s.score + ' xal</div>' +
+    '</div>';
+  }).join('');
+  document.getElementById('goPlayAgain').style.display = S.isHost ? 'block' : 'none';
+}
+
+function goHome() {
+  location.reload();
+}
+
+// ── CHAT ───────────────────────────────────
+function addChat(m) {
+  const box = document.getElementById('cmsgs');
+  const div = document.createElement('div');
+  if (m.correct) {
+    div.className = 'cmsg correct';
+    div.innerHTML = '<span class="mname">✅ ' + esc(m.name) + '</span>: ' + esc(m.text);
+  } else if (m.close) {
+    div.className = 'cmsg close';
+    div.innerHTML = '<span class="mname">' + esc(m.name) + '</span>: ' + esc(m.text);
+  } else if (m.sys) {
+    div.className = 'cmsg sys';
+    div.textContent = m.text;
+  } else {
+    div.className = 'cmsg';
+    div.innerHTML = '<span class="mname">' + esc(m.name) + '</span>: ' + esc(m.text);
+  }
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+function sysMsg(t) {
+  addChat({ sys: true, text: t });
+}
+
+function clearChat() {
+  document.getElementById('cmsgs').innerHTML = '';
+}
+
+function sendGuess() {
+  const inp = document.getElementById('cinput');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  if (S.guessedCorrect) return;
+  if (S.isDrawer) return;
+  S.socket.emit('guess', { text: txt });
+  inp.value = '';
+}
+
+// ── TOAST ─────────────────────────────────
+function toast(msg, type) {
+  type = type || 'info';
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(function() {
+    t.style.opacity = '0';
+    t.style.transition = 'opacity .3s';
+  }, 2700);
+  setTimeout(function() { t.remove(); }, 3100);
+}
+
+// ── ACTIONS ───────────────────────────────
+function createRoom() {
+  const name = document.getElementById('cName').value.trim();
+  if (!name) return showErr('Ad daxil edin.');
+  S.myName = name;
+  S.socket.emit('createRoom', {
+    name: name,
+    rounds: parseInt(document.getElementById('cRounds').value),
+    drawTime: parseInt(document.getElementById('cTime').value),
+  });
+}
+
+function joinRoom() {
+  const name = document.getElementById('jName').value.trim();
+  const code = document.getElementById('jCode').value.trim();
+  if (!name) return showErr('Ad daxil edin.');
+  if (!/^\d{5}$/.test(code)) return showErr('5 rəqəmli kodu daxil edin.');
+  S.myName = name;
+  S.socket.emit('joinRoom', { name: name, code: code });
+}
+
+function emitStart() {
+  S.socket.emit('startGame');
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(S.code).then(function() {
+    toast('Kod kopyalandı: ' + S.code, 'ok');
+  }).catch(function() {
+    toast('Kod: ' + S.code, 'info');
+  });
+}
+
+function emitPlayAgain() {
+  S.socket.emit('playAgain');
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
