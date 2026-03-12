@@ -1,6 +1,6 @@
 {
   "name": "CızTap",
-  "version": "1.0.4",
+  "version": "1.0.4.5",
   "description": "Azərbaycan dili üçün çiz-tap oyunu",
   "main": "server.js",
   "scripts": {
