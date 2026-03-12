@@ -921,6 +921,8 @@ function saveUndo(){
 function doUndo(){
   if(!S.isDrawer||!S.undoStack.length) return;
   S.ctx.putImageData(S.undoStack.pop(),0,0);
+  const dataUrl=S.canvas.toDataURL('image/png');
+  S.socket.emit('undoSync',{img:dataUrl});
 }
 function doClear(){if(!S.isDrawer)return;saveUndo();fillWhite();S.socket.emit('clear');}
 
@@ -1027,6 +1029,12 @@ function connectSocket(){
   sk.on('fill',  function(d){if(!S.isDrawer)floodFill(d.x, d.y, d.color);});
   sk.on('shape', function(d){if(!S.isDrawer)renderDraw(d);});
   sk.on('clearCanvas',function(){fillWhite();sysMsg('Kanvas silindi.');});
+  sk.on('undoSync',function(d){
+    if(S.isDrawer||!d.img) return;
+    const img=new Image();
+    img.onload=function(){S.ctx.clearRect(0,0,CW,CH);S.ctx.drawImage(img,0,0,CW,CH);};
+    img.src=d.img;
+  });
 
   sk.on('correctGuess',function(data){
     S.players=S.players.map(p=>{const f=data.scores.find(x=>x.id===p.id);return f?Object.assign({},p,{score:f.score}):p;});
