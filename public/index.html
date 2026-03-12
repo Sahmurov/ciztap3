@@ -220,13 +220,16 @@ body.in-game .top-btns{display:none}
  *   getPos() düzgün 800×600 koordinatı verir.
  * Bütün oyunçular eyni piksel məkanında çəkir → tam uyğunluq.
  */
+/*
+ * cwrap: JS scaleCwrap() tərəfindən birbaşa CSS width=height=side px verilir.
+ * canvas atributları həmişə 600×600 qalır.
+ * getPos() getBoundingClientRect nisbəti ilə düzgün koordinat verir.
+ * Heç bir transform, margin trikü yoxdur — layout həmişə vizual ölçüyə bərabərdir.
+ */
 .cwrap{
-  position:relative;
-  width:600px; height:600px;
-  transform-origin:top center;
+  position:relative;flex-shrink:0;
   border-radius:10px;overflow:hidden;
   box-shadow:0 4px 18px var(--shadow);background:#fff;
-  flex-shrink:0;
 }
 #gameCanvas{display:block;width:600px;height:600px;touch-action:none;cursor:crosshair}
 #previewCanvas{position:absolute;top:0;left:0;width:600px;height:600px;pointer-events:none;display:block}
@@ -758,19 +761,22 @@ function initCanvas(){
 function scaleCwrap(){
   const carea   = document.querySelector('.carea');
   const toolbar = document.getElementById('toolbar');
-  if(!carea) return;
+  const cwrap   = document.getElementById('cwrap');
+  if(!carea||!cwrap) return;
   const tbH = toolbar && !toolbar.classList.contains('hidden') ? toolbar.offsetHeight + 6 : 0;
-  const pad  = 12;
-  const aw   = carea.clientWidth  - pad;
-  const ah   = carea.clientHeight - tbH - pad;
-  if(aw < 50 || ah < 50) return;
-  const s = Math.min(aw / CW, ah / CH, 1);  // never scale up
-  document.getElementById('cwrap').style.transform = 'scale(' + s + ')';
-  // Shift cwrap up so it doesn't create scroll gap after scale shrinks it
-  const scaledH = CH * s;
-  const yOff = (CH - scaledH) / 2;
-  document.getElementById('cwrap').style.marginTop = '-' + yOff + 'px';
-  document.getElementById('cwrap').style.marginBottom = '-' + yOff + 'px';
+  const pad = 10;
+  const aw  = carea.clientWidth  - pad;
+  const ah  = carea.clientHeight - tbH - pad;
+  if(aw < 40 || ah < 40) return;
+  // Fit 600×600 into available space, keep square
+  const side = Math.min(aw, ah, CW);
+  cwrap.style.width  = side + 'px';
+  cwrap.style.height = side + 'px';
+  // canvas/previewCanvas CSS display size also needs to match
+  S.canvas.style.width   = side + 'px';
+  S.canvas.style.height  = side + 'px';
+  S.pcanvas.style.width  = side + 'px';
+  S.pcanvas.style.height = side + 'px';
 }
 
 function fillWhite(){
@@ -778,9 +784,10 @@ function fillWhite(){
   S.ctx.fillRect(0, 0, CW, CH);
 }
 
-// getPos: screen event → 800×600 canvas pixel
+// getPos: ekran koordinatları → 600×600 canvas piksel
+// getBoundingClientRect CSS ölçüsünü verir, ratio ilə 600×600-ə çevrilir
 function getPos(e){
-  const rect = S.canvas.getBoundingClientRect();  // already CSS-scaled
+  const rect = S.canvas.getBoundingClientRect();
   return {
     x: Math.round((e.clientX - rect.left) * (CW / rect.width)),
     y: Math.round((e.clientY - rect.top)  * (CH / rect.height)),
