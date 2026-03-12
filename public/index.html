@@ -769,100 +769,99 @@ window.addEventListener('load',function(){
   connectSocket();
 });
 
-// ══════════════════════════════════
-//  CANVAS RESIZE — KEY FIX
-//  We use ResizeObserver on cwrap.
-//  Canvas CSS has no width/height.
-//  Canvas attribute = cwrap.clientWidth/Height.
-//  So getBoundingClientRect always equals canvas.width/height → scaleX=1.
-// ══════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+//  UNIFIED CANVAS SIZING
+//  One function does everything: computes target w/h from carea,
+//  sets cwrap CSS, sets canvas attributes — all in one shot.
+//  No ResizeObserver on cwrap, no two-step race condition.
+// ══════════════════════════════════════════════════════════════
 function setupResizeObserver(){
-  const wrap=document.getElementById('cwrap');
-  const ro=new ResizeObserver(function(){
-    syncCanvasSize();
-  });
-  ro.observe(wrap);
-  // Also observe carea so we resize when panels change size
-  const carea=document.querySelector('.carea');
-  if(carea){
-    const ro2=new ResizeObserver(function(){
-      sizeCwrapSafe();
-    });
-    ro2.observe(carea);
-  }
+  // Only observe window resize — no ResizeObserver loops
+  window.addEventListener('resize', function(){ applyCanvasSize(); });
 }
 
-function syncCanvasSize(){
-  const wrap=document.getElementById('cwrap');
-  const w=wrap.clientWidth;
-  const h=wrap.clientHeight;
-  if(!w||!h)return;
-  if(S.canvas.width===w&&S.canvas.height===h)return;
-  // Save canvas content before resize
-  let savedImg=null;
-  const oldW=S.canvas.width, oldH=S.canvas.height;
-  if(oldW>0&&oldH>0){
+// PC: 4:3 landscape    Mobile: fill available height, 3:4 portrait
+const PC_RATIO  = 4/3;
+const MOB_RATIO = 3/4;
+
+// Public aliases so existing callers still work
+function sizeCwrap()    { applyCanvasSize(); }
+function sizeCwrapSafe(){ requestAnimationFrame(function(){ requestAnimationFrame(applyCanvasSize); }); }
+
+function applyCanvasSize(){
+  const cwrap  = document.getElementById('cwrap');
+  const carea  = document.querySelector('.carea');
+  if(!cwrap || !carea || !S.canvas) return;
+
+  const aw = carea.clientWidth;
+  const ah = carea.clientHeight;
+
+  // If carea not rendered yet, retry next frame
+  if(!aw || aw < 40 || !ah || ah < 40){
+    requestAnimationFrame(applyCanvasSize);
+    return;
+  }
+
+  const toolbar = document.getElementById('toolbar');
+  const tbH = toolbar && !toolbar.classList.contains('hidden') ? toolbar.offsetHeight + 4 : 0;
+
+  // Decide ratio based on actual viewport width (works for desktop-mode too)
+  const vw = window.innerWidth;
+  const isMob = vw <= 900;  // wider threshold — catches tablet/desktop-mode phone
+  const ratio = isMob ? MOB_RATIO : PC_RATIO;
+
+  const availW = aw - 8;
+  const availH = ah - 8 - tbH;
+
+  let w, h;
+  if(isMob){
+    // Portrait: try full available width first
+    w = availW;
+    h = Math.round(w / ratio);
+    if(h > availH && availH > 60){ h = availH; w = Math.round(h * ratio); }
+  } else {
+    // Landscape: fill width
+    w = availW;
+    h = Math.round(w / ratio);
+    if(h > availH && availH > 60){ h = availH; w = Math.round(h * ratio); }
+  }
+
+  // Round to integers
+  w = Math.round(w);
+  h = Math.round(h);
+
+  if(w < 40 || h < 40) return;
+
+  // ── Apply cwrap CSS ──
+  cwrap.style.width  = w + 'px';
+  cwrap.style.height = h + 'px';
+  cwrap.style.marginLeft = isMob ? Math.max(0,(aw-w)/2)+'px' : '';
+
+  // ── Sync canvas attributes immediately (no waiting for ResizeObserver) ──
+  if(S.canvas.width === w && S.canvas.height === h) return; // nothing to do
+
+  // Save existing drawing
+  let saved = null;
+  const oldW = S.canvas.width, oldH = S.canvas.height;
+  if(oldW > 4 && oldH > 4){
     try{
-      const tmp=document.createElement('canvas');
-      tmp.width=oldW; tmp.height=oldH;
-      tmp.getContext('2d').drawImage(S.canvas,0,0);
-      savedImg=tmp;
+      const tmp = document.createElement('canvas');
+      tmp.width = oldW; tmp.height = oldH;
+      tmp.getContext('2d').drawImage(S.canvas, 0, 0);
+      saved = tmp;
     }catch(e){}
   }
-  // Resize
-  S.canvas.width=w; S.canvas.height=h;
-  S.pcanvas.width=w; S.pcanvas.height=h;
-  // Restore content (scaled to new size)
+
+  // Resize both canvases
+  S.canvas.width  = w;  S.canvas.height  = h;
+  S.pcanvas.width = w;  S.pcanvas.height = h;
+
+  // Restore drawing (scaled)
   fillWhite();
-  if(savedImg) S.ctx.drawImage(savedImg,0,0,oldW,oldH,0,0,w,h);
-}
-
-// PC uses landscape 4:3 (wide canvas), mobile uses portrait (tall canvas)
-const PC_RATIO  = 4/3;   // width ÷ height  →  wider than tall on desktop
-const MOB_RATIO = 3/4;   // width ÷ height  →  taller than wide on phone
-
-function sizeCwrap(){
-  const cwrap=document.getElementById('cwrap');
-  const carea=document.querySelector('.carea');
-  if(!cwrap||!carea)return;
-  const isMob=window.innerWidth<=767;
-  let w,h;
-
-  if(isMob){
-    const toolbar=document.getElementById('toolbar');
-    const tbH=toolbar&&!toolbar.classList.contains('hidden')?toolbar.offsetHeight:0;
-    const gtopH=document.querySelector('.gtop')?document.querySelector('.gtop').offsetHeight:52;
-    const playersH=60;
-    const chatEl=document.querySelector('.cpanel');
-    const chatH=chatEl?chatEl.offsetHeight:150;
-    const avail=window.innerHeight-gtopH-playersH-tbH-chatH-4;
-    w=window.innerWidth;
-    h=Math.round(w/MOB_RATIO);          // portrait: h > w
-    if(h>avail&&avail>80){h=avail;w=Math.round(h*MOB_RATIO);}
-    cwrap.style.width=w+'px';
-    cwrap.style.height=h+'px';
-    cwrap.style.marginLeft=Math.max(0,(window.innerWidth-w)/2)+'px';
-  } else {
-    // PC: landscape — width drives size, fill the available width fully
-    const toolbar=document.getElementById('toolbar');
-    const tbH=toolbar&&!toolbar.classList.contains('hidden')?toolbar.offsetHeight+6:0;
-    const pad=12;
-    const aw=carea.clientWidth-pad;
-    const ah=carea.clientHeight-pad-tbH;
-    if(!aw||aw<100||!ah||ah<100)return;
-    w=aw;                                // use full width
-    h=Math.round(w/PC_RATIO);           // 4:3 height
-    if(h>ah){h=ah;w=Math.round(h*PC_RATIO);}  // cap by height if needed
-    cwrap.style.width=w+'px';
-    cwrap.style.height=h+'px';
-    cwrap.style.marginLeft='';
+  if(saved && oldW > 4 && oldH > 4){
+    S.ctx.drawImage(saved, 0, 0, oldW, oldH, 0, 0, w, h);
   }
 }
-
-// Reliable resize: use rAF so layout is settled before measuring
-function sizeCwrapSafe(){requestAnimationFrame(function(){requestAnimationFrame(sizeCwrap);});}
-
-window.addEventListener('resize',sizeCwrapSafe);
 
 function fillWhite(){
   S.ctx.fillStyle='#ffffff';
@@ -1080,10 +1079,10 @@ function connectSocket(){
     clearChat();S.undoStack=[];
     S.isDrawer=false;S.guessedCorrect=false;
     setDrawerMode(false);showCover('','');
-    // Wait for DOM to settle (2 frames) then size and clear canvas
+    // Wait 2 frames for layout, then size canvas and clear
     requestAnimationFrame(function(){
       requestAnimationFrame(function(){
-        sizeCwrap();
+        applyCanvasSize();
         fillWhite();
         sysMsg('Oyun başladı! 🎮');sndStart();
       });
@@ -1119,8 +1118,8 @@ function connectSocket(){
     hideCover();setTimerUI(data.timeLeft,data.timeLeft);
     renderGamePlayers(data.drawerId);
     setDrawerMode(S.isDrawer);
-    // Recompute canvas size after toolbar toggle (drawer shows toolbar, others don't)
-    sizeCwrapSafe();
+    // Recompute canvas after toolbar toggled (drawer sees toolbar, others don't)
+    requestAnimationFrame(applyCanvasSize);
     const gc=document.getElementById('gCode');
     if(S.isHost){gc.style.display='block';gc.textContent=S.code;}else{gc.style.display='none';}
     if(S.isDrawer)sysMsg('Siz çizirsiniz! Söz: "'+S.myWord+'"');
@@ -1188,7 +1187,7 @@ function goScreen(id){
     const isLight=document.body.classList.contains('light');
     const gT=document.getElementById('gThemeBtn');if(gT)gT.textContent=isLight?'☀️':'🌙';
     const gS=document.getElementById('gSoundBtn');if(gS)gS.textContent=S.soundOn?'🔊':'🔇';
-    sizeCwrapSafe();
+    requestAnimationFrame(function(){ requestAnimationFrame(applyCanvasSize); });
   }
 }
 
