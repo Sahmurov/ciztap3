@@ -6,14 +6,11 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app);
 
-// ─── TƏHLÜKƏSİZLİK ──────────────────────────────────────────────────────────
 app.use(function(req, res, next) {
   res.removeHeader('X-Powered-By');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'no-referrer');
-  res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=()');
   next();
 });
 
@@ -26,7 +23,7 @@ app.use(function(req, res, next) {
   e.c++;
   httpRate.set(ip, e);
   if (httpRate.size > 5000) for (const [k, v] of httpRate) if (now - v.t > 60000) httpRate.delete(k);
-  if (e.c > 120) return res.status(429).send('Çox sorğu.');
+  if (e.c > 150) return res.status(429).send('Çox sorğu.');
   next();
 });
 
@@ -42,88 +39,99 @@ function rateOk(id, limit, ms) {
   return e.c <= (limit || 40);
 }
 
-// ─── SÖZ BANKASI ─────────────────────────────────────────────────────────────
-const CAT = {
-  'Heyvanlar': [
-    'it','pişik','at','inək','toyuq','ördək','aslan','pələng','fil','zürafə',
-    'meymun','ayı','tülkü','dovşan','kirpi','ilan','tısbağa','balıq','quş','qartal',
-    'göyərçin','qurbağa','köpəkbalığı','delfin','zebra','kərgədan','timsah','kərtənkələ',
-    'maral','dəvə','kənguru','koala','pinqvin','flamingo','baykuş','eşşək','keçi','donuz',
-    'xərçəng','ahtapot','arı','kəpənək','canavar','samur','qunduz','hipopotam','tukan',
-    'papağan','leylək','qarğa','sərçə','bülbül','dəniz atı','dəvəquşu','şimpanze',
-    'leopard','bufalo','ağ ayı','qorilla','kolibri','pelikan','ağcaqanad','salyangoz',
-  ],
-  'Meyvə və Tərəvəz': [
-    'alma','armud','üzüm','qarpız','qovun','portağal','limon','gilas','ərik','pomidor',
-    'xiyar','kartof','soğan','bibər','badımcan','göbələk','yerkökü','nanə','ispanaq',
-    'kələm','turp','sarımsaq','çiyələk','moruq','heyva','əncir','xurma','nar','şaftalı',
-    'gavalı','banan','ananas','mango','kivi','avokado','keşniş','reyhan','zoğal',
-    'razyana','limon','qaragilə','böyürtkən','tərxun','brokkoli','qırmızı kələm',
-  ],
-  'Azərbaycan Yeməkləri': [
-    'plov','qutab','dolma','düşbərə','xəngəl','bozbas','piti','qovurma','küftə',
-    'lavangi','kebab','şorba','baklava','şəkərbura','halva','aşure','dovğa','qatıq',
-    'dürüm','levengi','buğlama','paklavа','qənd','narsharab','saj','təndir çörəyi',
-  ],
-  'Gündəlik Yeməklər': [
-    'çörək','yumurta','pendir','süd','pizza','burger','makaron','tort','dondurma',
-    'şokolad','sandwich','omlet','düyü','çay','qəhvə','limonad','ayran','kərə yağı',
-    'bal','konfet','keks','şəkər','çips','popcorn','waffle','krem','yoqart',
-  ],
-  'Nəqliyyat': [
-    'avtomobil','avtobus','qatar','təyyarə','gəmi','motosiklet','velosiped','taksi',
-    'metro','helikopter','yük maşını','ambulans','traktor','qayıq','yelkənli','tramvay',
-    'raket','paraşut','skuter','kareta','pikap','ekskavator','buldozer','limuzin',
-    'miniavtobus','at arabası','gondola','hava balonu',
-  ],
-  'Ev Əşyaları': [
-    'stul','masa','divan','çarpayı','şkaf','soyuducu','televizor','telefon','kompüter',
-    'kitab','qələm','makas','çanta','lampa','pəncərə','qapı','tava','qazan','çaydanıq',
-    'fincan','boşqab','stəkan','açar','saat','güzgü','çətir','mişar','çəkic','pilləkən',
-    'kərpic','mıx','vida','xalça','yastıq','yorğan','pərdə','şam','çıraq','kuzə',
-    'termos','blender','mikrodalğalı soba','tozsoran','üzgəc','lifт','barmaqlıq',
-  ],
-  'Geyim': [
-    'köynək','şalvar','ətək','palto','jaket','başlıq','corab','don','papaq','qurşaq',
-    'boyunbağı','üzük','çəkmə','sandal','əlcək','kəmər','kostyum','qalstuk','plaş',
-    'şlyapa','idman paltarı','bikini','kurtka','pencək','alt paltarı','şərfə',
-  ],
-  'Təbiət': [
-    'dağ','dəniz','çay','göl','meşə','şəlalə','vulkan','ada','günəş','ay','ulduz',
-    'bulud','yağış','qar','şimşək','göy qurşağı','gül','ağac','kaktus','palma','yarpaq',
-    'göbələk','qaya','çöl','səhra','buzlaq','dalğa','külək','tufan','çiçək','torpaq',
-    'mağara','dərə','yarımada','körfəz','delta','bataqlıq','tayqa','tropik',
-  ],
-  'İdman': [
-    'futbol','basketbol','voleybol','tennis','üzgüçülük','boks','karate','şahmat',
-    'qolf','badminton','skeytbord','gimnastika','güləş','oxatma','at yarışı',
-    'marafon','yarış','polo','hokey','ragbi','kriket','nərd','dambıl','üzgüçülük',
-    'triathlon','sürfing','dalğıclıq','alpinizm','qılınc oynatma',
-  ],
-  'Peşələr': [
-    'həkim','müəllim','mühəndis','aşpaz','sürücü','pilot','polis','yanğınsöndürən',
-    'bərbər','aktyor','müğənni','rəssam','yazıçı','jurnalist','hüquqşünas',
-    'proqramçı','arxitektor','cərrah','bağban','balıqçı','fotoqraf','diplomat',
-    'mühasib','psixoloq','diş həkimi','baytarlıq həkimi','astronavt','çoban',
-  ],
-  'Azərbaycan': [
-    'Bakı','Şuşa','Gəncə','Naxçıvan','Lənkəran','Quba','Şəki','Mingəçevir',
-    'xalça','tar','kamança','nar','qala','karvansara','İçərişəhər','Qəbələ',
-    'İsmayıllı','bayraq','Biləsuvar','Zaqatala','Qax','Balakən','Şamaxı',
-    'Lerik','Masallı','Astara','Bərdə','Ağdam','Füzuli','Şirvan',
-  ],
+// ─── SÖZ BANKASI (çətinlik səviyyəli) ────────────────────────────────────────
+const WORDS = {
+  'Heyvanlar': {
+    easy:   ['it','pişik','at','inək','toyuq','balıq','quş','aslan','fil','ayı','donuz','keçi','eşşək'],
+    medium: ['zürafə','delfin','kənguru','koala','pinqvin','flamingo','timsah','maral','dəvə','tısbağa','kərtənkələ'],
+    hard:   ['kərgədan','hipopotam','şimpanze','dəvəquşu','kolibri','pelikan','gorilla','leopard','bufalo','samur'],
+  },
+  'Meyvə və Tərəvəz': {
+    easy:   ['alma','armud','üzüm','qarpız','portağal','limon','pomidor','xiyar','kartof','soğan','bibər'],
+    medium: ['heyva','əncir','xurma','nar','şaftalı','gavalı','ananas','kivi','avokado','ispanaq','kələm'],
+    hard:   ['razyana','zoğal','qaragilə','böyürtkən','tərxun','brokkoli','qırmızı kələm','armudu','feijoa'],
+  },
+  'Azərbaycan Yeməkləri': {
+    easy:   ['plov','kebab','dolma','qutab','çörək','şorba','baklava','şəkərbura'],
+    medium: ['düşbərə','xəngəl','bozbas','piti','qovurma','küftə','lavangi','aşure','dovğa'],
+    hard:   ['levengi','buğlama','narsharab','sabzi qovurma','təndir çörəyi','qənd halva'],
+  },
+  'Gündəlik Yeməklər': {
+    easy:   ['çörək','yumurta','süd','pizza','burger','tort','dondurma','şokolad','çay','qəhvə'],
+    medium: ['makaron','sandwich','omlet','limonad','ayran','kərə yağı','bal','konfet','keks'],
+    hard:   ['waffle','sufle','tiramisu','fondü','bruschetta','paella','lasanya'],
+  },
+  'Nəqliyyat': {
+    easy:   ['avtomobil','avtobus','qatar','təyyarə','gəmi','velosiped','taksi','metro'],
+    medium: ['motosiklet','helikopter','tramvay','yük maşını','ambulans','traktor','yelkənli'],
+    hard:   ['ekskavator','buldozer','limuzin','gondola','hava balonu','miniavtobus','paraşut'],
+  },
+  'Ev Əşyaları': {
+    easy:   ['stul','masa','divan','çarpayı','şkaf','soyuducu','televizor','telefon','qapı','pəncərə'],
+    medium: ['kompüter','çaydanıq','fincan','boşqab','stəkan','açar','güzgü','çətir','xalça','pərdə'],
+    hard:   ['tozsoran','blender','termos','kuzə','barmaqlıq','mişar','çəkic','vida','liftə'],
+  },
+  'Geyim': {
+    easy:   ['köynək','şalvar','palto','papaq','corab','çəkmə','sandal','don'],
+    medium: ['jaket','ətək','əlcək','qurşaq','boyunbağı','üzük','kəmər','kostyum'],
+    hard:   ['qalstuk','plaş','şərfə','araqçın','kəlağayı','tafta','kombinezон'],
+  },
+  'Təbiət': {
+    easy:   ['dağ','dəniz','çay','göl','meşə','günəş','ay','ulduz','bulud','yağış','qar'],
+    medium: ['şəlalə','vulkan','ada','şimşək','göy qurşağı','kaktus','palma','dalğa'],
+    hard:   ['bataqlıq','tayqa','buzlaq','mağara','yarımada','körfəz','delta','arktika'],
+  },
+  'İdman': {
+    easy:   ['futbol','basketbol','voleybol','tennis','üzgüçülük','boks','şahmat','qaçış'],
+    medium: ['karate','qolf','badminton','skeytbord','gimnastika','güləş','hokey','polo'],
+    hard:   ['triathlon','sörfinq','dalğıclıq','alpinizm','qılınc oynatma','oxatma','biatlon'],
+  },
+  'Peşələr': {
+    easy:   ['həkim','müəllim','aşpaz','sürücü','polis','pilot','bərbər','rəssam'],
+    medium: ['mühəndis','aktyor','müğənni','yazıçı','jurnalist','proqramçı','arxitektor'],
+    hard:   ['cərrah','diplomat','psixoloq','astronomavt','kriptoqraf','nevroloq','antropoloq'],
+  },
+  'Azərbaycan': {
+    easy:   ['Bakı','Şuşa','Gəncə','nar','xalça','tar','bayraq','qala'],
+    medium: ['Naxçıvan','Lənkəran','Quba','Şəki','kamança','İçərişəhər','karvansara'],
+    hard:   ['Mingəçevir','Biləsuvar','Zaqatala','Balakən','Şamaxı','Lerik','Masallı'],
+  },
 };
 
-const ALL = Object.values(CAT).reduce(function(a, b) { return a.concat(b); }, []);
-CAT['Hamısı'] = ALL;
-
-function getRandWords(cat, n) {
-  const pool = (cat && CAT[cat]) ? CAT[cat].slice() : ALL.slice();
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    const t = pool[i]; pool[i] = pool[j]; pool[j] = t;
+function getPool(cat, diff) {
+  if (cat === 'Hamısı') {
+    const all = [];
+    Object.values(WORDS).forEach(function(c) {
+      if (diff === 'all') {
+        all.push.apply(all, c.easy.concat(c.medium).concat(c.hard));
+      } else {
+        all.push.apply(all, c[diff] || c.easy);
+      }
+    });
+    return all;
   }
-  return pool.slice(0, n || 3);
+  const c = WORDS[cat];
+  if (!c) return Object.values(WORDS)[0].easy;
+  if (diff === 'all') return c.easy.concat(c.medium).concat(c.hard);
+  return c[diff] || c.easy;
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function getRandWords(room, n) {
+  // Merge custom words with pool
+  let pool = getPool(room.category, room.difficulty);
+  if (room.customWords && room.customWords.length > 0) {
+    pool = pool.concat(room.customWords);
+  }
+  return shuffle(pool).slice(0, n || 3);
 }
 
 function buildHint(word, ratio) {
@@ -144,7 +152,7 @@ function startTurn(code) {
   if (!r || r.players.length < 2) return;
   r.word = null; r.guessed = []; r.timeLeft = r.drawTime; r.hintRatio = 0;
   const drawer = r.players[r.drawerIdx];
-  r.choices = getRandWords(r.category, 3);
+  r.choices = getRandWords(r, 3);
   io.to(drawer.id).emit('chooseWord', { words: r.choices });
   io.to(code).emit('waitingWord', { drawerName: drawer.name, drawerId: drawer.id });
   r.choiceTimer = setTimeout(function() {
@@ -181,6 +189,14 @@ function endTurn(code) {
   const r = rooms[code];
   if (!r) return;
   clearInterval(r.timer); clearTimeout(r.choiceTimer);
+  // Stats tracking
+  r.players.forEach(function(p) {
+    if (!p.stats) p.stats = { guessed: 0, drew: 0, totalPts: 0 };
+    const wasDrawer = r.players[r.drawerIdx] && r.players[r.drawerIdx].id === p.id;
+    if (wasDrawer) p.stats.drew++;
+    const g = r.guessed.find(function(x) { return x.id === p.id; });
+    if (g) { p.stats.guessed++; p.stats.totalPts += g.pts; }
+  });
   io.to(code).emit('turnEnd', {
     word: r.word || '?',
     scores: r.players.map(function(p) { return { id: p.id, name: p.name, score: p.score, avatar: p.avatar }; }),
@@ -190,10 +206,10 @@ function endTurn(code) {
     r.drawerIdx = (r.drawerIdx + 1) % r.players.length;
     if (r.drawerIdx === 0) r.round++;
     if (r.round > r.maxRounds) {
-      const s = r.players.slice().sort(function(a, b) { return b.score - a.score; });
+      const sorted = r.players.slice().sort(function(a, b) { return b.score - a.score; });
       io.to(code).emit('gameOver', {
-        scores: r.players.map(function(p) { return { name: p.name, score: p.score, avatar: p.avatar }; }),
-        winner: s[0].name, winnerAvatar: s[0].avatar,
+        scores: r.players.map(function(p) { return { name: p.name, score: p.score, avatar: p.avatar, stats: p.stats }; }),
+        winner: sorted[0].name, winnerAvatar: sorted[0].avatar,
       });
       r.started = false;
     } else {
@@ -208,20 +224,13 @@ function doLeave(socket, code) {
   if (!r) return;
   const me = r.players.find(function(p) { return p.id === socket.id; });
   r.players = r.players.filter(function(p) { return p.id !== socket.id; });
-  if (r.players.length === 0) {
-    clearInterval(r.timer); clearTimeout(r.choiceTimer);
-    delete rooms[code]; return;
-  }
+  if (r.players.length === 0) { clearInterval(r.timer); clearTimeout(r.choiceTimer); delete rooms[code]; return; }
   if (!r.players.find(function(p) { return p.isHost; })) r.players[0].isHost = true;
-  io.to(code).emit('playerUpdate', {
-    players: r.players,
-    msg: (me ? me.name : 'Oyunçu') + ' ayrıldı.',
-  });
+  io.to(code).emit('playerUpdate', { players: r.players, msg: (me ? me.name : 'Oyunçu') + ' ayrıldı.' });
   if (r.started) {
     if (r.drawerIdx >= r.players.length) r.drawerIdx = 0;
     if (r.players.length < 2) {
-      clearInterval(r.timer); clearTimeout(r.choiceTimer);
-      r.started = false;
+      clearInterval(r.timer); clearTimeout(r.choiceTimer); r.started = false;
       io.to(code).emit('gamePaused');
     } else if (me && r.players[r.drawerIdx] && me.id === r.players[r.drawerIdx].id) {
       clearInterval(r.timer); clearTimeout(r.choiceTimer);
@@ -231,7 +240,7 @@ function doLeave(socket, code) {
   }
 }
 
-// ─── SOCKET.IO ────────────────────────────────────────────────────────────────
+// ─── SOCKET ───────────────────────────────────────────────────────────────────
 const io = new Server(server, { cors: { origin: '*' }, pingTimeout: 60000, maxHttpBufferSize: 1e5 });
 
 io.on('connection', function(socket) {
@@ -240,24 +249,26 @@ io.on('connection', function(socket) {
     if (!rateOk(socket.id, 5, 30000)) return socket.emit('err', 'Çox tez cəhd. Gözləyin.');
     const name = ((d && d.name) || '').trim().substring(0, 16);
     if (!name) return socket.emit('err', 'Ad daxil edin.');
-    const avatar = Math.min(Math.max(parseInt(d && d.avatar) || 0, 0), 7);
-    const rounds = Math.min(Math.max(parseInt(d && d.rounds) || 3, 1), 10);
+    const avatar   = Math.min(Math.max(parseInt(d && d.avatar)   || 0, 0), 7);
+    const rounds   = Math.min(Math.max(parseInt(d && d.rounds)   || 3, 1), 10);
     const drawTime = Math.min(Math.max(parseInt(d && d.drawTime) || 80, 30), 180);
-    const category = (d && d.category && CAT[d.category]) ? d.category : 'Hamısı';
+    const category = (d && d.category && (WORDS[d.category] || d.category === 'Hamısı')) ? d.category : 'Hamısı';
+    const difficulty = ['easy','medium','hard','all'].includes(d && d.difficulty) ? d.difficulty : 'all';
+    // Custom words — sanitize
+    const customWords = Array.isArray(d && d.customWords)
+      ? d.customWords.map(function(w) { return String(w).trim().substring(0, 40); }).filter(function(w) { return w.length > 1; }).slice(0, 50)
+      : [];
     const code = genCode();
     rooms[code] = {
-      code: code, round: 1, maxRounds: rounds, drawTime: drawTime, category: category,
+      code, round: 1, maxRounds: rounds, drawTime, category, difficulty, customWords,
       drawerIdx: 0, started: false,
       word: null, choices: [], guessed: [], hintRatio: 0,
       timer: null, choiceTimer: null, timeLeft: 0,
-      players: [{ id: socket.id, name: name, avatar: avatar, score: 0, isHost: true }],
+      players: [{ id: socket.id, name, avatar, score: 0, isHost: true, stats: { guessed: 0, drew: 0, totalPts: 0 } }],
     };
-    socket.join(code);
-    socket.data.code = code;
-    socket.emit('roomReady', {
-      code: code, isHost: true, players: rooms[code].players,
-      settings: { rounds: rounds, drawTime: drawTime, category: category },
-    });
+    socket.join(code); socket.data.code = code;
+    socket.emit('roomReady', { code, isHost: true, players: rooms[code].players,
+      settings: { rounds, drawTime, category, difficulty, customWords } });
   });
 
   socket.on('joinRoom', function(d) {
@@ -268,16 +279,13 @@ io.on('connection', function(socket) {
     if (!name) return socket.emit('err', 'Ad daxil edin.');
     if (!/^\d{5}$/.test(code)) return socket.emit('err', '5 rəqəmli kodu daxil edin.');
     const r = rooms[code];
-    if (!r) return socket.emit('err', 'Otaq tapılmadı. Kodu yoxlayın.');
+    if (!r) return socket.emit('err', 'Otaq tapılmadı.');
     if (r.started) return socket.emit('err', 'Oyun artıq başlayıb.');
     if (r.players.length >= 8) return socket.emit('err', 'Otaq doludur (maks 8).');
-    r.players.push({ id: socket.id, name: name, avatar: avatar, score: 0, isHost: false });
-    socket.join(code);
-    socket.data.code = code;
-    socket.emit('roomReady', {
-      code: code, isHost: false, players: r.players,
-      settings: { rounds: r.maxRounds, drawTime: r.drawTime, category: r.category },
-    });
+    r.players.push({ id: socket.id, name, avatar, score: 0, isHost: false, stats: { guessed: 0, drew: 0, totalPts: 0 } });
+    socket.join(code); socket.data.code = code;
+    socket.emit('roomReady', { code, isHost: false, players: r.players,
+      settings: { rounds: r.maxRounds, drawTime: r.drawTime, category: r.category, difficulty: r.difficulty, customWords: r.customWords } });
     socket.to(code).emit('playerUpdate', { players: r.players, msg: name + ' qoşuldu! 👋' });
   });
 
@@ -289,7 +297,7 @@ io.on('connection', function(socket) {
     if (r.players.length < 2) return socket.emit('err', 'Ən az 2 oyunçu lazımdır.');
     if (r.started) return;
     r.started = true; r.round = 1; r.drawerIdx = 0;
-    r.players.forEach(function(p) { p.score = 0; });
+    r.players.forEach(function(p) { p.score = 0; p.stats = { guessed: 0, drew: 0, totalPts: 0 }; });
     io.to(r.code).emit('gameStarted');
     setTimeout(function() { startTurn(r.code); }, 800);
   });
@@ -306,7 +314,7 @@ io.on('connection', function(socket) {
   });
 
   socket.on('draw', function(d) {
-    if (!rateOk(socket.id, 200, 1000)) return;
+    if (!rateOk(socket.id, 300, 1000)) return;
     const r = rooms[socket.data && socket.data.code];
     if (!r || !r.started) return;
     const drawer = r.players[r.drawerIdx];
@@ -345,10 +353,10 @@ io.on('connection', function(socket) {
     if (guess.toLowerCase() === r.word.toLowerCase()) {
       const pts = Math.max(10 - r.guessed.length, 5);
       me.score += pts;
-      if (drawer) drawer.score += 5; // çizənə 5 xal
-      r.guessed.push({ id: socket.id });
+      if (drawer) drawer.score += 5;
+      r.guessed.push({ id: socket.id, pts });
       io.to(r.code).emit('correctGuess', {
-        name: me.name, id: socket.id, pts: pts,
+        name: me.name, id: socket.id, pts,
         drawerId: drawer ? drawer.id : null,
         scores: r.players.map(function(p) { return { id: p.id, name: p.name, score: p.score, avatar: p.avatar }; }),
       });
@@ -358,7 +366,7 @@ io.on('connection', function(socket) {
       const wl = r.word.toLowerCase(), gl = guess.toLowerCase();
       const mc = gl.split('').filter(function(c) { return wl.includes(c); }).length;
       const close = wl.length > 3 && gl.length > 2 && Math.abs(wl.length - gl.length) <= 2 && mc >= Math.floor(gl.length * 0.6);
-      io.to(r.code).emit('chat', { name: me.name, avatar: me.avatar, text: guess, close: close });
+      io.to(r.code).emit('chat', { name: me.name, avatar: me.avatar, text: guess, close });
     }
   });
 
@@ -370,11 +378,7 @@ io.on('connection', function(socket) {
     if (!me) return;
     const drawer = r.players[r.drawerIdx];
     if (r.started && drawer && drawer.id === socket.id) return;
-    io.to(r.code).emit('chat', {
-      name: me.name, avatar: me.avatar,
-      text: String((d && d.text) || '').trim().substring(0, 80),
-      close: false,
-    });
+    io.to(r.code).emit('chat', { name: me.name, avatar: me.avatar, text: String((d && d.text) || '').trim().substring(0, 80), close: false });
   });
 
   socket.on('kick', function(d) {
@@ -389,10 +393,7 @@ io.on('connection', function(socket) {
     const ts = io.sockets.sockets.get(tid);
     if (ts) { ts.emit('kicked'); ts.leave(r.code); ts.data.code = null; }
     io.to(r.code).emit('playerUpdate', { players: r.players, msg: target.name + ' çıxarıldı.' });
-    if (r.started && r.players.length < 2) {
-      clearInterval(r.timer); clearTimeout(r.choiceTimer);
-      r.started = false; io.to(r.code).emit('gamePaused');
-    }
+    if (r.started && r.players.length < 2) { clearInterval(r.timer); clearTimeout(r.choiceTimer); r.started = false; io.to(r.code).emit('gamePaused'); }
   });
 
   socket.on('leaveRoom', function() {
@@ -410,7 +411,7 @@ io.on('connection', function(socket) {
     const me = r.players.find(function(p) { return p.id === socket.id; });
     if (!me || !me.isHost) return;
     r.round = 1; r.drawerIdx = 0; r.started = true;
-    r.players.forEach(function(p) { p.score = 0; });
+    r.players.forEach(function(p) { p.score = 0; p.stats = { guessed: 0, drew: 0, totalPts: 0 }; });
     io.to(r.code).emit('gameStarted');
     setTimeout(function() { startTurn(r.code); }, 800);
   });
@@ -424,5 +425,6 @@ io.on('connection', function(socket) {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, function() {
-  console.log('CizTap isleyir — port ' + PORT + ' — ' + ALL.length + ' soz');
+  const total = Object.values(WORDS).reduce(function(s, c) { return s + c.easy.length + c.medium.length + c.hard.length; }, 0);
+  console.log('CizTap calishir — port ' + PORT + ' — ' + total + ' soz');
 });
