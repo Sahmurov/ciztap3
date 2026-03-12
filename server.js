@@ -336,6 +336,14 @@ io.on('connection', function(socket) {
     socket.to(r.code).emit('shape', d);
   });
 
+  socket.on('undoSync', function(d) {
+    if(!rateOk(socket.id, 10, 5000)) return;
+    const r = rooms[socket.data && socket.data.code];
+    if(!r || !r.started) return;
+    if(r.players[r.drawerIdx] && r.players[r.drawerIdx].id !== socket.id) return;
+    socket.to(r.code).emit('undoSync', { img: d && d.img });
+  });
+
   socket.on('clear', function() {
     const r = rooms[socket.data && socket.data.code];
     if (!r || !r.started) return;
