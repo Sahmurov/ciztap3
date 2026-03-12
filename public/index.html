@@ -222,14 +222,14 @@ body.in-game .top-btns{display:none}
  */
 .cwrap{
   position:relative;
-  width:800px; height:600px;
+  width:600px; height:600px;
   transform-origin:top center;
   border-radius:10px;overflow:hidden;
   box-shadow:0 4px 18px var(--shadow);background:#fff;
   flex-shrink:0;
 }
-#gameCanvas{display:block;width:800px;height:600px;touch-action:none;cursor:crosshair}
-#previewCanvas{position:absolute;top:0;left:0;width:800px;height:600px;pointer-events:none;display:block}
+#gameCanvas{display:block;width:600px;height:600px;touch-action:none;cursor:crosshair}
+#previewCanvas{position:absolute;top:0;left:0;width:600px;height:600px;pointer-events:none;display:block}
 
 .cover{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
   justify-content:center;background:rgba(13,17,23,.9);border-radius:10px;
@@ -445,15 +445,14 @@ body.light .cover{background:rgba(240,244,248,.93)}
         <select id="cCat" class="inp">
           <option value="Hamısı">Hamısı</option>
           <option value="Heyvanlar">🐾 Heyvanlar</option>
-          <option value="Meyvə və Tərəvəz">🍎 Meyvə & Tərəvəz</option>
-          <option value="Azərbaycan Yeməkləri">🍲 Azərbaycan Yeməkləri</option>
-          <option value="Gündəlik Yeməklər">🍕 Gündəlik Yeməklər</option>
+          <option value="Meyvə və tərəvəz">🍎 Meyvə & Tərəvəz</option>
+          <option value="Ev əşyaları">🏠 Ev Əşyaları</option>
+          <option value="Yemək">🍕 Yemək</option>
           <option value="Nəqliyyat">🚗 Nəqliyyat</option>
-          <option value="Ev Əşyaları">🏠 Ev Əşyaları</option>
           <option value="Geyim">👕 Geyim</option>
           <option value="Təbiət">🌿 Təbiət</option>
           <option value="İdman">⚽ İdman</option>
-          <option value="Peşələr">👨‍⚕️ Peşələr</option>
+          <option value="Əşyalar">🎒 Əşyalar</option>
           <option value="Azərbaycan">🇦🇿 Azərbaycan</option>
         </select></div>
       <div class="ig"><label class="lbl">Çətinlik</label>
@@ -748,7 +747,7 @@ window.addEventListener('load',function(){
 //  Coordinates sent over socket are raw 800×600 pixels.
 //  Everyone draws in the same pixel space → perfect match.
 // ══════════════════════════════════════════════════════════
-const CW = 800, CH = 600;
+const CW = 600, CH = 600;
 
 function initCanvas(){
   S.canvas.width  = CW; S.canvas.height  = CH;
