@@ -817,9 +817,9 @@ function syncCanvasSize(){
   if(savedImg) S.ctx.drawImage(savedImg,0,0,oldW,oldH,0,0,w,h);
 }
 
-// 3:4 portrait ratio — matches phone screen shape, works on PC too
-// width:height = 3:4 → RATIO = 3/4
-const CANVAS_RATIO = 3/4;
+// PC uses landscape 4:3 (wide canvas), mobile uses portrait (tall canvas)
+const PC_RATIO  = 4/3;   // width ÷ height  →  wider than tall on desktop
+const MOB_RATIO = 3/4;   // width ÷ height  →  taller than wide on phone
 
 function sizeCwrap(){
   const cwrap=document.getElementById('cwrap');
@@ -829,7 +829,6 @@ function sizeCwrap(){
   let w,h;
 
   if(isMob){
-    // Mobile: full viewport width, height = available space after other panels
     const toolbar=document.getElementById('toolbar');
     const tbH=toolbar&&!toolbar.classList.contains('hidden')?toolbar.offsetHeight:0;
     const gtopH=document.querySelector('.gtop')?document.querySelector('.gtop').offsetHeight:52;
@@ -838,23 +837,22 @@ function sizeCwrap(){
     const chatH=chatEl?chatEl.offsetHeight:150;
     const avail=window.innerHeight-gtopH-playersH-tbH-chatH-4;
     w=window.innerWidth;
-    h=Math.round(w/CANVAS_RATIO);   // portrait: h > w
-    if(h>avail&&avail>80){h=avail;w=Math.round(h*CANVAS_RATIO);}
+    h=Math.round(w/MOB_RATIO);          // portrait: h > w
+    if(h>avail&&avail>80){h=avail;w=Math.round(h*MOB_RATIO);}
     cwrap.style.width=w+'px';
     cwrap.style.height=h+'px';
     cwrap.style.marginLeft=Math.max(0,(window.innerWidth-w)/2)+'px';
   } else {
-    // PC: fit inside carea, canvas is portrait (narrower, taller)
+    // PC: landscape — width drives size, fill the available width fully
     const toolbar=document.getElementById('toolbar');
     const tbH=toolbar&&!toolbar.classList.contains('hidden')?toolbar.offsetHeight+6:0;
     const pad=12;
     const aw=carea.clientWidth-pad;
     const ah=carea.clientHeight-pad-tbH;
-    if(!aw||aw<80||!ah||ah<80)return;
-    // Portrait: h drives size, cap by available height first
-    h=ah;
-    w=Math.round(h*CANVAS_RATIO);
-    if(w>aw){w=aw;h=Math.round(w/CANVAS_RATIO);}
+    if(!aw||aw<100||!ah||ah<100)return;
+    w=aw;                                // use full width
+    h=Math.round(w/PC_RATIO);           // 4:3 height
+    if(h>ah){h=ah;w=Math.round(h*PC_RATIO);}  // cap by height if needed
     cwrap.style.width=w+'px';
     cwrap.style.height=h+'px';
     cwrap.style.marginLeft='';
