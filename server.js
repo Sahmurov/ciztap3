@@ -40,59 +40,54 @@ function rateOk(id, limit, ms) {
 
 const WORDS = {
   'Heyvanlar': {
-    easy:   ['it','pişik','at','inək','toyuq','balıq','quş','aslan','fil','ayı','donuz','keçi','eşşək'],
-    medium: ['zürafə','delfin','kənguru','koala','pinqvin','flamingo','timsah','maral','dəvə','tısbağa','kərtənkələ'],
-    hard:   ['kərgədan','hipopotam','şimpanze','dəvəquşu','kolibri','pelikan','gorilla','leopard','bufalo','samur'],
+    easy:   ['it','pişik','at','inək','toyuq','balıq','quş','aslan','fil','ayı','donuz','keçi','ördək','siçan','dovşan'],
+    medium: ['zürafə','delfin','kənguru','pinqvin','timsah','maral','dəvə','tısbağa','maymun','qurbağa','tülkü','arı','kəpənək'],
+    hard:   ['flamingo','koala','dəvəquşu','pelikan','şimpanze','kərgədan','hipopotam'],
   },
-  'Meyvə və Tərəvəz': {
-    easy:   ['alma','armud','üzüm','qarpız','portağal','limon','pomidor','xiyar','kartof','soğan','bibər'],
-    medium: ['heyva','əncir','xurma','nar','şaftalı','gavalı','ananas','kivi','avokado','ispanaq','kələm'],
-    hard:   ['razyana','zoğal','qaragilə','böyürtkən','tərxun','brokkoli','feijoa'],
+  'Meyvə və tərəvəz': {
+    easy:   ['alma','armud','üzüm','qarpız','portağal','limon','pomidor','xiyar','kartof','soğan','banan','gilas'],
+    medium: ['heyva','əncir','nar','şaftalı','ananas','kivi','kələm','yerkökü','sarımsaq','bibər','çiyələk','gavalı'],
+    hard:   ['avokado','brokkoli','qaragilə','qovun','şabalıd'],
   },
-  'Azərbaycan Yeməkləri': {
-    easy:   ['plov','kebab','dolma','qutab','çörək','şorba','baklava','şəkərbura'],
-    medium: ['düşbərə','xəngəl','bozbas','piti','qovurma','küftə','lavangi','aşure','dovğa'],
-    hard:   ['levengi','buğlama','narsharab','qənd halva'],
+  'Ev əşyaları': {
+    easy:   ['stul','masa','divan','çarpayı','şkaf','soyuducu','televizor','telefon','qapı','pəncərə','çıraq','pilləkən'],
+    medium: ['çaydanıq','fincan','boşqab','qaşıq','bıçaq','vedrə','süpürgə','yastıq','güzgü','xalça','çəkic','makas'],
+    hard:   ['tozsoran','termos','blender','kuzə','mum'],
   },
-  'Gündəlik Yeməklər': {
-    easy:   ['çörək','yumurta','süd','pizza','burger','tort','dondurma','şokolad','çay','qəhvə'],
-    medium: ['makaron','sandwich','omlet','limonad','ayran','kərə yağı','bal','konfet','keks'],
-    hard:   ['waffle','sufle','tiramisu','fondü','bruschetta','paella','lasanya'],
+  'Yemək': {
+    easy:   ['çörək','pizza','burger','tort','dondurma','şokolad','plov','kabab','yumurta','süd','pendir','çay'],
+    medium: ['sandwich','omlet','makaron','bal','keks','donut','hotdog','salat','şorba','qəhvə','konfet','ayran'],
+    hard:   ['waffle','tiramisu','sufle','lasanya','fondu'],
   },
   'Nəqliyyat': {
-    easy:   ['avtomobil','avtobus','qatar','təyyarə','gəmi','velosiped','taksi','metro'],
-    medium: ['motosiklet','helikopter','tramvay','yük maşını','ambulans','traktor','yelkənli'],
-    hard:   ['ekskavator','buldozer','limuzin','gondola','hava balonu','paraşut'],
-  },
-  'Ev Əşyaları': {
-    easy:   ['stul','masa','divan','çarpayı','şkaf','soyuducu','televizor','telefon','qapı','pəncərə'],
-    medium: ['kompüter','çaydanıq','fincan','boşqab','stəkan','açar','güzgü','çətir','xalça','pərdə'],
-    hard:   ['tozsoran','blender','termos','kuzə','mişar','çəkic','vida'],
+    easy:   ['avtomobil','avtobus','qatar','təyyarə','gəmi','velosiped','taksi','metro','motosiklet'],
+    medium: ['helikopter','tramvay','ambulans','traktor','yelkənli','yük maşını','kater','qanadlı'],
+    hard:   ['ekskavator','buldozer','hava balonu','gondola'],
   },
   'Geyim': {
-    easy:   ['köynək','şalvar','palto','papaq','corab','çəkmə','sandal','don'],
-    medium: ['jaket','ətək','əlcək','qurşaq','boyunbağı','üzük','kəmər','kostyum'],
-    hard:   ['qalstuk','plaş','şərfə','araqçın','kəlağayı'],
+    easy:   ['köynək','şalvar','palto','papaq','corab','çəkmə','sandal','don','jaket','çanta'],
+    medium: ['ətək','kəmər','əlcək','boyunbağı','üzük','eynək','şərfə','kostyum','qalstuk'],
+    hard:   ['plaş','kəlağayı','araqçın'],
   },
   'Təbiət': {
-    easy:   ['dağ','dəniz','çay','göl','meşə','günəş','ay','ulduz','bulud','yağış','qar'],
-    medium: ['şəlalə','vulkan','ada','şimşək','göy qurşağı','kaktus','palma','dalğa'],
-    hard:   ['bataqlıq','tayqa','buzlaq','mağara','yarımada','körfəz','delta'],
+    easy:   ['dağ','dəniz','çay','göl','meşə','günəş','ay','ulduz','bulud','yağış','qar','ağac','çiçək','od'],
+    medium: ['şəlalə','vulkan','ada','şimşək','göy qurşağı','kaktus','dalğa','göbələk','daş','torpaq'],
+    hard:   ['buzlaq','mağara','bataqlıq','yarımada'],
   },
   'İdman': {
-    easy:   ['futbol','basketbol','voleybol','tennis','üzgüçülük','boks','şahmat','qaçış'],
-    medium: ['karate','qolf','badminton','skeytbord','gimnastika','güləş','hokey','polo'],
-    hard:   ['triathlon','sörfinq','dalğıclıq','alpinizm','qılınc oynatma','biatlon'],
+    easy:   ['futbol','basketbol','tennis','üzgüçülük','boks','qaçış','voleybol','skeytbord','top'],
+    medium: ['gimnastika','karate','qolf','badminton','hokey','güləş','baseball','döyüş sənəti'],
+    hard:   ['sörfinq','alpinizm','polo','triathlon'],
   },
-  'Peşələr': {
-    easy:   ['həkim','müəllim','aşpaz','sürücü','polis','pilot','bərbər','rəssam'],
-    medium: ['mühəndis','aktyor','müğənni','yazıçı','jurnalist','proqramçı','arxitektor'],
-    hard:   ['cərrah','diplomat','psixoloq','astronavt','nevroloq'],
+  'Əşyalar': {
+    easy:   ['kitab','qələm','makas','açar','lampa','saatı','kamera','kompüter','çətir','eynək'],
+    medium: ['mikrofon','gitara','barabanlar','teleskop','lövhə','mum','zəng','çamadan','torba'],
+    hard:   ['akkordeon','mikroskop','proyektor'],
   },
   'Azərbaycan': {
-    easy:   ['nar','xalça','tar','bayraq','qala','çay','saz'],
-    medium: ['kamança','karvansara','İçərişəhər','papaq','kəlağayı','balaban'],
-    hard:   ['zurna','nağara','qaval','tütək','ud','qanun','qobustan'],
+    easy:   ['nar','xalça','tar','bayraq','qala','saz','plov','dolma','çay'],
+    medium: ['kamança','papaq','kəlağayı','balaban','karvansara','qutab','şəkərbura','baklava'],
+    hard:   ['zurna','nağara','qaval','tütək'],
   },
 };
 
@@ -139,6 +134,7 @@ function startTurn(code) {
   const r = rooms[code];
   if (!r || r.players.length < 2) return;
   safeTimer(r);
+  r._ending = false;  // reset end guard for new turn
   r.word = null; r.guessed = []; r.timeLeft = r.drawTime; r.hintRatio = 0;
   const drawer = r.players[r.drawerIdx];
   r.choices = pick3(r);
@@ -146,7 +142,9 @@ function startTurn(code) {
   io.to(code).emit('waitingWord', { drawerName: drawer.name, drawerId: drawer.id });
   r._choice = setTimeout(function() {
     r._choice = null;
-    if (!r.word) beginTurn(code, r.choices[(Math.random() * r.choices.length) | 0]);
+    if (!r.word && r.choices && r.choices.length) {
+      beginTurn(code, r.choices[(Math.random() * r.choices.length) | 0]);
+    }
   }, 12000);
 }
 
@@ -176,6 +174,8 @@ function beginTurn(code, word) {
 function endTurn(code) {
   const r = rooms[code];
   if (!r) return;
+  if (r._ending) return;  // prevent double endTurn
+  r._ending = true;
   safeTimer(r);
   r.players.forEach(function(p) {
     if (!p.stats) p.stats = { guessed: 0, drew: 0, totalPts: 0 };
@@ -211,6 +211,8 @@ function doLeave(socket, code) {
   const r = rooms[code];
   if (!r) return;
   const me = r.players.find(p => p.id === socket.id);
+  // Check if leaving player is current drawer BEFORE removing them
+  const wasDrawer = r.started && me && r.players[r.drawerIdx] && r.players[r.drawerIdx].id === me.id;
   r.players = r.players.filter(p => p.id !== socket.id);
   if (r.players.length === 0) { safeTimer(r); delete rooms[code]; return; }
   if (!r.players.find(p => p.isHost)) r.players[0].isHost = true;
@@ -220,13 +222,11 @@ function doLeave(socket, code) {
   if (r.players.length < 2) {
     safeTimer(r); r.started = false; r.paused = true;
     io.to(code).emit('gamePaused');
-  } else if (me) {
-    const drawer = r.players[r.drawerIdx];
-    if (!drawer || me.id === drawer.id) {
-      safeTimer(r);
-      io.to(code).emit('clearCanvas');
-      setTimeout(() => { if (rooms[code]) startTurn(code); }, 1500);
-    }
+  } else if (wasDrawer) {
+    // Drawer left — skip to next turn immediately
+    safeTimer(r);
+    io.to(code).emit('clearCanvas');
+    setTimeout(() => { if (rooms[code] && rooms[code].started) startTurn(code); }, 1500);
   }
 }
 
