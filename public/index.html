@@ -168,8 +168,12 @@ body.in-game .top-btns{display:none}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .word-hint.revealed{color:var(--red)}
 .timer-svg{width:46px;height:46px;flex-shrink:0}
-.timer-svg svg{transform:rotate(-90deg)}
-.timer-svg circle{transition:stroke-dashoffset .9s linear,stroke .5s}
+/* Rotate only the circles so the number text stays upright */
+.timer-svg circle{
+  transform-box:fill-box;transform-origin:center;
+  transform:rotate(-90deg);
+  transition:stroke-dashoffset .9s linear,stroke .5s;
+}
 #timerNum{font-size:11px;font-weight:800;fill:var(--text);font-family:Nunito,sans-serif;
   text-anchor:middle;dominant-baseline:middle}
 /* Right side: sound, theme, exit */
@@ -778,6 +782,14 @@ function setupResizeObserver(){
     syncCanvasSize();
   });
   ro.observe(wrap);
+  // Also observe carea so we resize when panels change size
+  const carea=document.querySelector('.carea');
+  if(carea){
+    const ro2=new ResizeObserver(function(){
+      sizeCwrapSafe();
+    });
+    ro2.observe(carea);
+  }
 }
 
 function syncCanvasSize(){
@@ -805,8 +817,9 @@ function syncCanvasSize(){
   if(savedImg) S.ctx.drawImage(savedImg,0,0,oldW,oldH,0,0,w,h);
 }
 
-// Same aspect ratio PC & mobile → coordinates always match
-const CANVAS_RATIO=3/2;
+// 3:4 portrait ratio — matches phone screen shape, works on PC too
+// width:height = 3:4 → RATIO = 3/4
+const CANVAS_RATIO = 3/4;
 
 function sizeCwrap(){
   const cwrap=document.getElementById('cwrap');
@@ -816,28 +829,30 @@ function sizeCwrap(){
   let w,h;
 
   if(isMob){
+    // Mobile: full viewport width, height = available space after other panels
     const toolbar=document.getElementById('toolbar');
     const tbH=toolbar&&!toolbar.classList.contains('hidden')?toolbar.offsetHeight:0;
     const gtopH=document.querySelector('.gtop')?document.querySelector('.gtop').offsetHeight:52;
     const playersH=60;
     const chatEl=document.querySelector('.cpanel');
     const chatH=chatEl?chatEl.offsetHeight:150;
-    const avail=window.innerHeight-gtopH-playersH-tbH-chatH-2;
+    const avail=window.innerHeight-gtopH-playersH-tbH-chatH-4;
     w=window.innerWidth;
-    h=Math.round(w/CANVAS_RATIO);
-    if(h>avail&&avail>60){h=avail;w=Math.round(h*CANVAS_RATIO);}
+    h=Math.round(w/CANVAS_RATIO);   // portrait: h > w
+    if(h>avail&&avail>80){h=avail;w=Math.round(h*CANVAS_RATIO);}
     cwrap.style.width=w+'px';
     cwrap.style.height=h+'px';
     cwrap.style.marginLeft=Math.max(0,(window.innerWidth-w)/2)+'px';
   } else {
+    // PC: fit inside carea, canvas is portrait (narrower, taller)
     const toolbar=document.getElementById('toolbar');
     const tbH=toolbar&&!toolbar.classList.contains('hidden')?toolbar.offsetHeight+6:0;
     const pad=12;
     const aw=carea.clientWidth-pad;
     const ah=carea.clientHeight-pad-tbH;
-    if(!aw||aw<100)return;
-    // Fit inside available area maintaining ratio
-    h=Math.min(ah,Math.round(aw/CANVAS_RATIO));
+    if(!aw||aw<80||!ah||ah<80)return;
+    // Portrait: h drives size, cap by available height first
+    h=ah;
     w=Math.round(h*CANVAS_RATIO);
     if(w>aw){w=aw;h=Math.round(w/CANVAS_RATIO);}
     cwrap.style.width=w+'px';
@@ -846,7 +861,10 @@ function sizeCwrap(){
   }
 }
 
-window.addEventListener('resize',function(){sizeCwrap();});
+// Reliable resize: use rAF so layout is settled before measuring
+function sizeCwrapSafe(){requestAnimationFrame(function(){requestAnimationFrame(sizeCwrap);});}
+
+window.addEventListener('resize',sizeCwrapSafe);
 
 function fillWhite(){
   S.ctx.fillStyle='#ffffff';
@@ -1064,12 +1082,14 @@ function connectSocket(){
     clearChat();S.undoStack=[];
     S.isDrawer=false;S.guessedCorrect=false;
     setDrawerMode(false);showCover('','');
-    // Size cwrap first, then clear canvas ONCE
-    sizeCwrap();
-    setTimeout(function(){
-      fillWhite();
-      sysMsg('Oyun başladı! 🎮');sndStart();
-    },80);
+    // Wait for DOM to settle (2 frames) then size and clear canvas
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        sizeCwrap();
+        fillWhite();
+        sysMsg('Oyun başladı! 🎮');sndStart();
+      });
+    });
   });
 
   sk.on('waitingWord',function(data){
@@ -1101,6 +1121,8 @@ function connectSocket(){
     hideCover();setTimerUI(data.timeLeft,data.timeLeft);
     renderGamePlayers(data.drawerId);
     setDrawerMode(S.isDrawer);
+    // Recompute canvas size after toolbar toggle (drawer shows toolbar, others don't)
+    sizeCwrapSafe();
     const gc=document.getElementById('gCode');
     if(S.isHost){gc.style.display='block';gc.textContent=S.code;}else{gc.style.display='none';}
     if(S.isDrawer)sysMsg('Siz çizirsiniz! Söz: "'+S.myWord+'"');
@@ -1165,11 +1187,10 @@ function goScreen(id){
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('in-game', id==='gameScreen');
   if(id==='gameScreen'){
-    // Sync gtop icons with current state
     const isLight=document.body.classList.contains('light');
     const gT=document.getElementById('gThemeBtn');if(gT)gT.textContent=isLight?'☀️':'🌙';
     const gS=document.getElementById('gSoundBtn');if(gS)gS.textContent=S.soundOn?'🔊':'🔇';
-    setTimeout(sizeCwrap,60);
+    sizeCwrapSafe();
   }
 }
 
