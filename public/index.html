@@ -375,19 +375,49 @@ body.light .cover{background:rgba(240,244,248,.93)}
 @keyframes popIn{from{opacity:0;transform:scale(.83)}to{opacity:1;transform:scale(1)}}
 @keyframes toastIn{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
 
-/* ══ MOBILE ══ */
+/* Leave game button in player panel */
+.leave-game-btn{
+  width:100%;padding:6px 8px;border-radius:8px;
+  background:rgba(239,51,64,.12);border:1px solid rgba(239,51,64,.3);
+  color:var(--red);font-size:.76rem;font-weight:800;
+  transition:all .15s;text-align:center;flex-shrink:0;margin-bottom:4px;
+}
+.leave-game-btn:hover{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* On mobile hide leave btn from ppanel (horizontal row) */
 @media(max-width:768px){
-  .gmain{display:flex;flex-direction:column;overflow-y:auto}
-  .ppanel{flex-direction:row;border-right:none;border-bottom:1px solid var(--border);
+  .leave-game-btn{display:none}
+}
+@media(max-width:768px){
+  #gameScreen{height:auto;min-height:100vh;overflow-y:auto}
+  .gmain{display:flex;flex-direction:column;overflow:visible;height:auto;min-height:0}
+  .ppanel{
+    flex-direction:row;border-right:none;border-bottom:1px solid var(--border);
     overflow-x:auto;overflow-y:visible;padding:6px;
-    min-height:65px;max-height:70px;gap:5px}
-  .ppanel::-webkit-scrollbar{height:0}
-  .pcard{min-width:95px}
+    height:64px;min-height:64px;max-height:64px;
+    flex-shrink:0;gap:5px;align-items:center;
+  }
+  .ppanel::-webkit-scrollbar{height:0;width:0}
+  .pcard{min-width:88px;flex-shrink:0}
   .pc-kick{display:none}
-  .carea{padding:5px;gap:5px}
-  .cpanel{max-height:190px;border-left:none;border-top:1px solid var(--border)}
+  .carea{
+    width:100%;padding:0;gap:0;flex-shrink:0;
+    display:flex;flex-direction:column;
+  }
+  .cwrap{
+    border-radius:0!important;
+    width:100%!important;
+    /* height is set by JS on mobile */
+  }
+  #gameCanvas{width:100%!important;display:block}
+  .toolbar{
+    border-radius:0;padding:7px 10px;gap:5px;
+    border-left:none;border-right:none;
+    overflow-x:auto;white-space:nowrap;flex-shrink:0;
+  }
+  .cpanel{height:200px;max-height:200px;border-left:none;border-top:1px solid var(--border);flex-shrink:0}
   .gtop{padding:6px 9px}
-  .g-code{display:none}
+  .g-code{display:none!important}
 }
 @media(max-width:480px){
   .home-card{padding:16px 14px}
@@ -536,12 +566,13 @@ body.light .cover{background:rgba(240,244,248,.93)}
           <text id="timerNum" x="22" y="22">--</text>
         </svg>
       </div>
-      <button class="btn btn-red btn-sm" onclick="leaveRoom()">Çıx</button>
     </div>
   </div>
 
   <div class="gmain">
-    <div class="ppanel" id="ppanel"></div>
+    <div class="ppanel" id="ppanel">
+      <button class="leave-game-btn" onclick="leaveRoom()">← Çıx</button>
+    </div>
     <div class="carea">
       <div class="cwrap" id="cwrap">
         <canvas id="gameCanvas"></canvas>
@@ -749,29 +780,35 @@ window.addEventListener('load', function() {
 //  CANVAS — FIX: correct coordinate scaling
 // ═══════════════════════════════════════════
 function resizeCanvas() {
-  const carea = document.querySelector('.carea');
-  const toolbar = document.getElementById('toolbar');
-  if (!carea) return;
-
-  // Available width
-  const aw = carea.clientWidth - 16; // minus padding
-  if (!aw || aw < 50) return;
-
-  // Available height (carea height minus toolbar)
-  const tbH = toolbar && !toolbar.classList.contains('hidden') ? toolbar.offsetHeight + 7 : 0;
-  const caH = carea.clientHeight - 16 - tbH;
+  const isMob = window.innerWidth <= 768;
   const ratio = 0.625; // 8:5
-  let w = aw;
-  let h = Math.round(w * ratio);
-  if (h > caH && caH > 100) { h = caH; w = Math.round(h / ratio); }
 
-  // FIX: set canvas internal resolution = CSS size (no scaling mismatch)
+  let w, h;
+  if (isMob) {
+    // Mobile: full screen width, proportional height
+    w = window.innerWidth;
+    h = Math.round(w * ratio);
+  } else {
+    const carea = document.querySelector('.carea');
+    const toolbar = document.getElementById('toolbar');
+    if (!carea) return;
+    const aw = carea.clientWidth - 16;
+    if (!aw || aw < 50) return;
+    const tbH = (toolbar && !toolbar.classList.contains('hidden')) ? (toolbar.offsetHeight + 7) : 0;
+    const caH = carea.clientHeight - 16 - tbH;
+    w = aw;
+    h = Math.round(w * ratio);
+    if (h > caH && caH > 100) { h = caH; w = Math.round(h / ratio); }
+  }
+
+  // Set canvas resolution = CSS size (no scaling mismatch)
   S.canvas.style.width  = w + 'px';
   S.canvas.style.height = h + 'px';
   S.canvas.width  = w;
   S.canvas.height = h;
-  document.getElementById('cwrap').style.width  = w + 'px';
-  document.getElementById('cwrap').style.height = h + 'px';
+  const wrap = document.getElementById('cwrap');
+  wrap.style.width  = w + 'px';
+  wrap.style.height = h + 'px';
   fillWhite();
 }
 
@@ -1133,7 +1170,8 @@ function renderLobbyPlayers(){
 
 function renderGamePlayers(drawerId){
   const panel=document.getElementById('ppanel');
-  panel.innerHTML='';
+  // keep leave button
+  panel.innerHTML='<button class="leave-game-btn" onclick="leaveRoom()">← Çıx</button>';
   S.players.forEach(function(p){
     const isDrawing=drawerId?p.id===drawerId:false;
     const isMe=p.id===S.myId;
