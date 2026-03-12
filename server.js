@@ -39,7 +39,7 @@ function rateOk(id, limit, ms) {
   return e.c <= (limit || 40);
 }
 
-// ─── SÖZ BANKASI (çətinlik səviyyəli) ────────────────────────────────────────
+// ─── SÖZ BANKASI ─────────────────────────────────────────────────────────────
 const WORDS = {
   'Heyvanlar': {
     easy:   ['it','pişik','at','inək','toyuq','balıq','quş','aslan','fil','ayı','donuz','keçi','eşşək'],
@@ -49,12 +49,12 @@ const WORDS = {
   'Meyvə və Tərəvəz': {
     easy:   ['alma','armud','üzüm','qarpız','portağal','limon','pomidor','xiyar','kartof','soğan','bibər'],
     medium: ['heyva','əncir','xurma','nar','şaftalı','gavalı','ananas','kivi','avokado','ispanaq','kələm'],
-    hard:   ['razyana','zoğal','qaragilə','böyürtkən','tərxun','brokkoli','qırmızı kələm','armudu','feijoa'],
+    hard:   ['razyana','zoğal','qaragilə','böyürtkən','tərxun','brokkoli','feijoa'],
   },
   'Azərbaycan Yeməkləri': {
     easy:   ['plov','kebab','dolma','qutab','çörək','şorba','baklava','şəkərbura'],
     medium: ['düşbərə','xəngəl','bozbas','piti','qovurma','küftə','lavangi','aşure','dovğa'],
-    hard:   ['levengi','buğlama','narsharab','sabzi qovurma','təndir çörəyi','qənd halva'],
+    hard:   ['levengi','buğlama','narsharab','təndir çörəyi','qənd halva'],
   },
   'Gündəlik Yeməklər': {
     easy:   ['çörək','yumurta','süd','pizza','burger','tort','dondurma','şokolad','çay','qəhvə'],
@@ -64,37 +64,37 @@ const WORDS = {
   'Nəqliyyat': {
     easy:   ['avtomobil','avtobus','qatar','təyyarə','gəmi','velosiped','taksi','metro'],
     medium: ['motosiklet','helikopter','tramvay','yük maşını','ambulans','traktor','yelkənli'],
-    hard:   ['ekskavator','buldozer','limuzin','gondola','hava balonu','miniavtobus','paraşut'],
+    hard:   ['ekskavator','buldozer','limuzin','gondola','hava balonu','paraşut'],
   },
   'Ev Əşyaları': {
     easy:   ['stul','masa','divan','çarpayı','şkaf','soyuducu','televizor','telefon','qapı','pəncərə'],
     medium: ['kompüter','çaydanıq','fincan','boşqab','stəkan','açar','güzgü','çətir','xalça','pərdə'],
-    hard:   ['tozsoran','blender','termos','kuzə','barmaqlıq','mişar','çəkic','vida','liftə'],
+    hard:   ['tozsoran','blender','termos','kuzə','mişar','çəkic','vida'],
   },
   'Geyim': {
     easy:   ['köynək','şalvar','palto','papaq','corab','çəkmə','sandal','don'],
     medium: ['jaket','ətək','əlcək','qurşaq','boyunbağı','üzük','kəmər','kostyum'],
-    hard:   ['qalstuk','plaş','şərfə','araqçın','kəlağayı','tafta','kombinezон'],
+    hard:   ['qalstuk','plaş','şərfə','araqçın','kəlağayı'],
   },
   'Təbiət': {
     easy:   ['dağ','dəniz','çay','göl','meşə','günəş','ay','ulduz','bulud','yağış','qar'],
     medium: ['şəlalə','vulkan','ada','şimşək','göy qurşağı','kaktus','palma','dalğa'],
-    hard:   ['bataqlıq','tayqa','buzlaq','mağara','yarımada','körfəz','delta','arktika'],
+    hard:   ['bataqlıq','tayqa','buzlaq','mağara','yarımada','körfəz','delta'],
   },
   'İdman': {
     easy:   ['futbol','basketbol','voleybol','tennis','üzgüçülük','boks','şahmat','qaçış'],
     medium: ['karate','qolf','badminton','skeytbord','gimnastika','güləş','hokey','polo'],
-    hard:   ['triathlon','sörfinq','dalğıclıq','alpinizm','qılınc oynatma','oxatma','biatlon'],
+    hard:   ['triathlon','sörfinq','dalğıclıq','alpinizm','qılınc oynatma','biatlon'],
   },
   'Peşələr': {
     easy:   ['həkim','müəllim','aşpaz','sürücü','polis','pilot','bərbər','rəssam'],
     medium: ['mühəndis','aktyor','müğənni','yazıçı','jurnalist','proqramçı','arxitektor'],
-    hard:   ['cərrah','diplomat','psixoloq','astronomavt','kriptoqraf','nevroloq','antropoloq'],
+    hard:   ['cərrah','diplomat','psixoloq','astronavt','kriptoqraf','nevroloq'],
   },
   'Azərbaycan': {
-    easy:   ['nar','xalça','tar','bayraq','qala','çay','azan','saz'],
-    medium: ['kamança','karvansara','İçərişəhər','qobustan','papaq','çəkmə','kəlağayı','balaban'],
-    hard:   ['zurna','nağara','skifa','qədəh','qaval','tütək','ud','qanun'],
+    easy:   ['nar','xalça','tar','bayraq','qala','çay','saz'],
+    medium: ['kamança','karvansara','İçərişəhər','papaq','kəlağayı','balaban'],
+    hard:   ['zurna','nağara','qaval','tütək','ud','qanun','qobustan'],
   },
 };
 
@@ -102,49 +102,41 @@ function getPool(cat, diff) {
   if (cat === 'Hamısı') {
     const all = [];
     Object.values(WORDS).forEach(function(c) {
-      if (diff === 'all') {
-        all.push.apply(all, c.easy.concat(c.medium).concat(c.hard));
-      } else {
-        all.push.apply(all, c[diff] || c.easy);
-      }
+      const src = diff === 'all' ? c.easy.concat(c.medium).concat(c.hard) : (c[diff] || c.easy);
+      all.push.apply(all, src);
     });
     return all;
   }
   const c = WORDS[cat];
   if (!c) return Object.values(WORDS)[0].easy;
-  if (diff === 'all') return c.easy.concat(c.medium).concat(c.hard);
-  return c[diff] || c.easy;
+  return diff === 'all' ? c.easy.concat(c.medium).concat(c.hard) : (c[diff] || c.easy);
 }
 
-function shuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
+function shuffle(a) {
+  const arr = a.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    const t = a[i]; a[i] = a[j]; a[j] = t;
+    const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
   }
-  return a;
+  return arr;
 }
 
 function getRandWords(room, n) {
-  // Merge custom words with pool
   let pool = getPool(room.category, room.difficulty);
-  if (room.customWords && room.customWords.length > 0) {
-    pool = pool.concat(room.customWords);
-  }
+  if (room.customWords && room.customWords.length) pool = pool.concat(room.customWords);
   return shuffle(pool).slice(0, n || 3);
 }
 
 function buildHint(word, ratio) {
   const chars = word.split('');
   const idxs = chars.map(function(c, i) { return c !== ' ' ? i : -1; }).filter(function(i) { return i >= 0; });
-  const n = Math.floor(idxs.length * (ratio || 0));
-  const show = new Set(idxs.slice(0, n));
+  const show = new Set(idxs.slice(0, Math.floor(idxs.length * (ratio || 0))));
   return chars.map(function(c, i) { return c === ' ' ? ' ' : (show.has(i) ? c : '_'); }).join(' ');
 }
 
 function genCode() { return Math.floor(10000 + Math.random() * 90000).toString(); }
 
-// ─── OTAQLAR ─────────────────────────────────────────────────────────────────
+// ─── ROOMS ───────────────────────────────────────────────────────────────────
 const rooms = {};
 
 function startTurn(code) {
@@ -176,10 +168,7 @@ function beginTurn(code, word) {
     r.timeLeft--;
     const ratio = 1 - r.timeLeft / r.drawTime;
     const nh = ratio >= 0.75 ? 0.45 : ratio >= 0.5 ? 0.25 : 0;
-    if (nh > r.hintRatio) {
-      r.hintRatio = nh;
-      io.to(code).emit('hintUpdate', { hint: buildHint(word, nh) });
-    }
+    if (nh > r.hintRatio) { r.hintRatio = nh; io.to(code).emit('hintUpdate', { hint: buildHint(word, nh) }); }
     io.to(code).emit('tick', { t: r.timeLeft });
     if (r.timeLeft <= 0) { clearInterval(r.timer); endTurn(code); }
   }, 1000);
@@ -189,11 +178,9 @@ function endTurn(code) {
   const r = rooms[code];
   if (!r) return;
   clearInterval(r.timer); clearTimeout(r.choiceTimer);
-  // Stats tracking
   r.players.forEach(function(p) {
     if (!p.stats) p.stats = { guessed: 0, drew: 0, totalPts: 0 };
-    const wasDrawer = r.players[r.drawerIdx] && r.players[r.drawerIdx].id === p.id;
-    if (wasDrawer) p.stats.drew++;
+    if (r.players[r.drawerIdx] && r.players[r.drawerIdx].id === p.id) p.stats.drew++;
     const g = r.guessed.find(function(x) { return x.id === p.id; });
     if (g) { p.stats.guessed++; p.stats.totalPts += g.pts; }
   });
@@ -206,10 +193,10 @@ function endTurn(code) {
     r.drawerIdx = (r.drawerIdx + 1) % r.players.length;
     if (r.drawerIdx === 0) r.round++;
     if (r.round > r.maxRounds) {
-      const sorted = r.players.slice().sort(function(a, b) { return b.score - a.score; });
+      const s = r.players.slice().sort(function(a, b) { return b.score - a.score; });
       io.to(code).emit('gameOver', {
         scores: r.players.map(function(p) { return { name: p.name, score: p.score, avatar: p.avatar, stats: p.stats }; }),
-        winner: sorted[0].name, winnerAvatar: sorted[0].avatar,
+        winner: s[0].name, winnerAvatar: s[0].avatar,
       });
       r.started = false;
     } else {
@@ -230,7 +217,8 @@ function doLeave(socket, code) {
   if (r.started) {
     if (r.drawerIdx >= r.players.length) r.drawerIdx = 0;
     if (r.players.length < 2) {
-      clearInterval(r.timer); clearTimeout(r.choiceTimer); r.started = false;
+      clearInterval(r.timer); clearTimeout(r.choiceTimer);
+      r.started = false; r.paused = true;
       io.to(code).emit('gamePaused');
     } else if (me && r.players[r.drawerIdx] && me.id === r.players[r.drawerIdx].id) {
       clearInterval(r.timer); clearTimeout(r.choiceTimer);
@@ -241,7 +229,7 @@ function doLeave(socket, code) {
 }
 
 // ─── SOCKET ───────────────────────────────────────────────────────────────────
-const io = new Server(server, { cors: { origin: '*' }, pingTimeout: 60000, maxHttpBufferSize: 1e5 });
+const io = new Server(server, { cors: { origin: '*' }, pingTimeout: 60000, maxHttpBufferSize: 2e5 });
 
 io.on('connection', function(socket) {
 
@@ -254,14 +242,13 @@ io.on('connection', function(socket) {
     const drawTime = Math.min(Math.max(parseInt(d && d.drawTime) || 80, 30), 180);
     const category = (d && d.category && (WORDS[d.category] || d.category === 'Hamısı')) ? d.category : 'Hamısı';
     const difficulty = ['easy','medium','hard','all'].includes(d && d.difficulty) ? d.difficulty : 'all';
-    // Custom words — sanitize
     const customWords = Array.isArray(d && d.customWords)
       ? d.customWords.map(function(w) { return String(w).trim().substring(0, 40); }).filter(function(w) { return w.length > 1; }).slice(0, 50)
       : [];
     const code = genCode();
     rooms[code] = {
       code, round: 1, maxRounds: rounds, drawTime, category, difficulty, customWords,
-      drawerIdx: 0, started: false,
+      drawerIdx: 0, started: false, paused: false,
       word: null, choices: [], guessed: [], hintRatio: 0,
       timer: null, choiceTimer: null, timeLeft: 0,
       players: [{ id: socket.id, name, avatar, score: 0, isHost: true, stats: { guessed: 0, drew: 0, totalPts: 0 } }],
@@ -280,13 +267,22 @@ io.on('connection', function(socket) {
     if (!/^\d{5}$/.test(code)) return socket.emit('err', '5 rəqəmli kodu daxil edin.');
     const r = rooms[code];
     if (!r) return socket.emit('err', 'Otaq tapılmadı.');
-    if (r.started) return socket.emit('err', 'Oyun artıq başlayıb.');
+    // FIX: allow joining paused game (was started but now < 2 players)
+    if (r.started && !r.paused) return socket.emit('err', 'Oyun davam edir. Növbəti raundda qoşulun.');
     if (r.players.length >= 8) return socket.emit('err', 'Otaq doludur (maks 8).');
-    r.players.push({ id: socket.id, name, avatar, score: 0, isHost: false, stats: { guessed: 0, drew: 0, totalPts: 0 } });
+    const newPlayer = { id: socket.id, name, avatar, score: 0, isHost: false, stats: { guessed: 0, drew: 0, totalPts: 0 } };
+    r.players.push(newPlayer);
     socket.join(code); socket.data.code = code;
     socket.emit('roomReady', { code, isHost: false, players: r.players,
       settings: { rounds: r.maxRounds, drawTime: r.drawTime, category: r.category, difficulty: r.difficulty, customWords: r.customWords } });
     socket.to(code).emit('playerUpdate', { players: r.players, msg: name + ' qoşuldu! 👋' });
+    // FIX: if game was paused and now has 2+ players, resume automatically
+    if (r.paused && r.players.length >= 2) {
+      r.paused = false; r.started = true;
+      r.players.forEach(function(p) { p.score = 0; });
+      io.to(code).emit('gameStarted');
+      setTimeout(function() { startTurn(code); }, 1500);
+    }
   });
 
   socket.on('startGame', function() {
@@ -296,7 +292,7 @@ io.on('connection', function(socket) {
     if (!me || !me.isHost) return;
     if (r.players.length < 2) return socket.emit('err', 'Ən az 2 oyunçu lazımdır.');
     if (r.started) return;
-    r.started = true; r.round = 1; r.drawerIdx = 0;
+    r.started = true; r.paused = false; r.round = 1; r.drawerIdx = 0;
     r.players.forEach(function(p) { p.score = 0; p.stats = { guessed: 0, drew: 0, totalPts: 0 }; });
     io.to(r.code).emit('gameStarted');
     setTimeout(function() { startTurn(r.code); }, 800);
@@ -314,7 +310,7 @@ io.on('connection', function(socket) {
   });
 
   socket.on('draw', function(d) {
-    if (!rateOk(socket.id, 300, 1000)) return;
+    if (!rateOk(socket.id, 400, 1000)) return;
     const r = rooms[socket.data && socket.data.code];
     if (!r || !r.started) return;
     const drawer = r.players[r.drawerIdx];
@@ -323,12 +319,21 @@ io.on('connection', function(socket) {
   });
 
   socket.on('fill', function(d) {
-    if (!rateOk(socket.id, 10, 5000)) return;
+    if (!rateOk(socket.id, 15, 5000)) return;
     const r = rooms[socket.data && socket.data.code];
     if (!r || !r.started) return;
     const drawer = r.players[r.drawerIdx];
     if (!drawer || drawer.id !== socket.id) return;
     socket.to(r.code).emit('fill', d);
+  });
+
+  socket.on('shape', function(d) {
+    if (!rateOk(socket.id, 30, 5000)) return;
+    const r = rooms[socket.data && socket.data.code];
+    if (!r || !r.started) return;
+    const drawer = r.players[r.drawerIdx];
+    if (!drawer || drawer.id !== socket.id) return;
+    socket.to(r.code).emit('shape', d);
   });
 
   socket.on('clear', function() {
@@ -393,7 +398,11 @@ io.on('connection', function(socket) {
     const ts = io.sockets.sockets.get(tid);
     if (ts) { ts.emit('kicked'); ts.leave(r.code); ts.data.code = null; }
     io.to(r.code).emit('playerUpdate', { players: r.players, msg: target.name + ' çıxarıldı.' });
-    if (r.started && r.players.length < 2) { clearInterval(r.timer); clearTimeout(r.choiceTimer); r.started = false; io.to(r.code).emit('gamePaused'); }
+    if (r.started && r.players.length < 2) {
+      clearInterval(r.timer); clearTimeout(r.choiceTimer);
+      r.started = false; r.paused = true;
+      io.to(r.code).emit('gamePaused');
+    }
   });
 
   socket.on('leaveRoom', function() {
@@ -410,7 +419,7 @@ io.on('connection', function(socket) {
     if (!r || r.started) return;
     const me = r.players.find(function(p) { return p.id === socket.id; });
     if (!me || !me.isHost) return;
-    r.round = 1; r.drawerIdx = 0; r.started = true;
+    r.round = 1; r.drawerIdx = 0; r.started = true; r.paused = false;
     r.players.forEach(function(p) { p.score = 0; p.stats = { guessed: 0, drew: 0, totalPts: 0 }; });
     io.to(r.code).emit('gameStarted');
     setTimeout(function() { startTurn(r.code); }, 800);
