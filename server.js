@@ -92,9 +92,9 @@ const WORDS = {
     hard:   ['cərrah','diplomat','psixoloq','astronomavt','kriptoqraf','nevroloq','antropoloq'],
   },
   'Azərbaycan': {
-    easy:   ['Bakı','Şuşa','Gəncə','nar','xalça','tar','bayraq','qala'],
-    medium: ['Naxçıvan','Lənkəran','Quba','Şəki','kamança','İçərişəhər','karvansara'],
-    hard:   ['Mingəçevir','Biləsuvar','Zaqatala','Balakən','Şamaxı','Lerik','Masallı'],
+    easy:   ['nar','xalça','tar','bayraq','qala','çay','azan','saz'],
+    medium: ['kamança','karvansara','İçərişəhər','qobustan','papaq','çəkmə','kəlağayı','balaban'],
+    hard:   ['zurna','nağara','skifa','qədəh','qaval','tütək','ud','qanun'],
   },
 };
 
