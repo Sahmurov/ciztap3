@@ -1611,7 +1611,7 @@ function emitPlayAgain(){ S.socket.emit('playAgain'); }
   const txt=inp.value.trim().toLowerCase();
   if(!txt||S.guessedCorrect||S.isDrawer) return;
   S.socket.emit('guess',{text:txt}); inp.value='';
-}
+
 
 // ══════════════════════════════════════════════════════════
 //  ACTIONS
