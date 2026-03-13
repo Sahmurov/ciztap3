@@ -400,6 +400,69 @@ body.light .cover{background:rgba(240,244,248,.93)}
 
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+/* ── Drawing pencil animation on player card ── */
+@keyframes pencilDraw{
+  0%{transform:rotate(-15deg) translate(0,0)}
+  25%{transform:rotate(-5deg) translate(2px,-2px)}
+  50%{transform:rotate(-15deg) translate(0,0)}
+  75%{transform:rotate(-25deg) translate(-2px,2px)}
+  100%{transform:rotate(-15deg) translate(0,0)}
+}
+.pcard.drawing .pc-st{animation:pencilDraw .7s ease-in-out infinite;display:inline-block;transform-origin:bottom center}
+.pcard.drawing{border-color:var(--blue);box-shadow:0 0 0 2px rgba(0,145,194,.18)}
+
+/* ── Round/turn transition slide ── */
+@keyframes slideInRight{
+  from{opacity:0;transform:translateX(60px)}
+  to  {opacity:1;transform:translateX(0)}
+}
+@keyframes slideOutLeft{
+  from{opacity:1;transform:translateX(0)}
+  to  {opacity:0;transform:translateX(-60px)}
+}
+.gmain.slide-in {animation:slideInRight .35s cubic-bezier(.22,.61,.36,1) forwards}
+.gmain.slide-out{animation:slideOutLeft  .28s ease forwards}
+
+/* ── Canvas drawer border ── */
+.cwrap{transition:box-shadow .4s ease}
+.cwrap.drawer-active{box-shadow:0 0 0 4px var(--drawer-clr,var(--blue)),0 4px 18px var(--shadow)}
+
+/* ── Podium ── */
+.podium-wrap{display:flex;align-items:flex-end;justify-content:center;gap:6px;margin:14px 0 6px}
+.pod{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;max-width:110px}
+.pod-avatar{font-size:1.5rem;line-height:1}
+.pod-name{font-size:.72rem;font-weight:800;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
+.pod-score{font-size:.78rem;font-weight:800;color:var(--gold)}
+.pod-block{width:100%;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:1.3rem}
+.pod.p1 .pod-block{height:72px;background:linear-gradient(160deg,#f5c842,#d4a017);box-shadow:0 4px 14px rgba(245,200,66,.35)}
+.pod.p2 .pod-block{height:52px;background:linear-gradient(160deg,#b0b8c1,#8a9198);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.pod.p3 .pod-block{height:38px;background:linear-gradient(160deg,#c9795a,#9b5a3a);box-shadow:0 4px 10px rgba(0,0,0,.15)}
+.pod-rest{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.pod-rest-row{display:flex;align-items:center;gap:7px;background:var(--card2);border-radius:7px;padding:5px 10px}
+.pod-rest-rank{font-size:.75rem;font-weight:800;color:var(--sub);width:18px;text-align:center}
+
+/* ── Best drawing gallery ── */
+.bd-section{margin-top:16px}
+.bd-title{font-size:.75rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;text-align:center}
+.bd-grid{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.bd-card{background:var(--card2);border:2px solid var(--border);border-radius:10px;overflow:hidden;
+  cursor:pointer;transition:all .18s;width:120px;text-align:center}
+.bd-card:hover{border-color:var(--blue);transform:translateY(-2px)}
+.bd-card.voted{border-color:var(--gold);box-shadow:0 0 0 2px rgba(245,200,66,.25)}
+.bd-img{width:120px;height:90px;display:block;object-fit:cover}
+.bd-info{padding:4px 6px}
+.bd-word{font-size:.7rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bd-drawer{font-size:.63rem;color:var(--sub)}
+.bd-votes{font-size:.7rem;font-weight:800;color:var(--gold)}
+
+/* ── Download btn ── */
+.dl-btn{position:absolute;bottom:7px;right:7px;z-index:10;
+  background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);
+  border-radius:6px;color:#fff;font-size:.72rem;font-weight:700;
+  padding:3px 7px;cursor:pointer;transition:all .2s;display:none}
+.dl-btn:hover{background:var(--blue);border-color:var(--blue)}
+.cwrap:hover .dl-btn{display:block}
 </style>
 </head>
 <body>
@@ -450,12 +513,13 @@ body.light .cover{background:rgba(240,244,248,.93)}
           <option value="Heyvanlar">🐾 Heyvanlar</option>
           <option value="Meyvə və tərəvəz">🍎 Meyvə & Tərəvəz</option>
           <option value="Ev əşyaları">🏠 Ev Əşyaları</option>
-          <option value="Yemək">🍕 Yemək</option>
+          <option value="Yemək və içki">🍕 Yemək & İçki</option>
           <option value="Nəqliyyat">🚗 Nəqliyyat</option>
           <option value="Geyim">👕 Geyim</option>
           <option value="Təbiət">🌿 Təbiət</option>
           <option value="İdman">⚽ İdman</option>
-          <option value="Əşyalar">🎒 Əşyalar</option>
+          <option value="Yer və bina">🏢 Yer & Bina</option>
+          <option value="Əşya və alət">🎒 Əşya & Alət</option>
           <option value="Azərbaycan">🇦🇿 Azərbaycan</option>
         </select></div>
       <div class="ig"><label class="lbl">Çətinlik</label>
@@ -547,6 +611,7 @@ body.light .cover{background:rgba(240,244,248,.93)}
         <canvas id="gameCanvas"></canvas>
         <canvas id="previewCanvas"></canvas>
         <div class="cover" id="cover"><div class="spin"></div><p>Yüklənir...</p></div>
+        <button class="dl-btn" id="dlBtn" onclick="downloadCanvas()" title="PNG yüklə">⬇ PNG</button>
       </div>
       <!-- toolbar always rendered, JS toggles .hidden class -->
       <div class="toolbar hidden" id="toolbar">
@@ -583,7 +648,9 @@ body.light .cover{background:rgba(240,244,248,.93)}
       <div class="chead">💬 Söhbət & Tapın</div>
       <div class="cmsgs" id="cmsgs"></div>
       <div class="cinput-row">
-        <input id="cinput" class="cinput" placeholder="Cavabı yazın..." maxlength="80"
+        <input id="cinput" class="cinput" placeholder="cavabı yazın..." maxlength="80"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          style="text-transform:lowercase"
           onkeydown="if(event.key==='Enter')sendGuess()">
         <button id="csend" class="csend" onclick="sendGuess()">↵</button>
       </div>
@@ -622,6 +689,8 @@ const AVATARS=[
   {e:'🦅',bg:'rgba(0,145,194,.2)',c:'#0091c2'},
   {e:'🐬',bg:'rgba(0,200,200,.2)',c:'#00a8a8'},
 ];
+// One distinct color per player slot for the canvas border
+const PLAYER_COLORS=['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#e91e63'];
 const CIRC = 2*Math.PI*18;
 const COLORS = ['#111111','#ffffff','#ef3340','#ff6600','#f5c842','#00a651',
   '#0091c2','#9966ff','#ff69b4','#00d2d2','#8b4513','#666666',
@@ -646,6 +715,8 @@ const S={
   pctx:null, pcanvas:null,
   undoStack:[], maxUndo:12,
   soundOn:true,
+  currentDrawerId:null,   // for border color
+  drawings:[],            // [{word, drawer, dataUrl}] for best-drawing gallery
 };
 
 // ══════════════════════════════════════════════════════════
@@ -666,6 +737,38 @@ function sndClose(){tone(440,'triangle',.2,.12);}
 function sndJoin(){tone(440,'sine',.14,.12);setTimeout(()=>tone(550,'sine',.14,.12),130);}
 function sndTimer(){tone(330,'square',.07,.07);}
 function sndStart(){[330,440,550,660].forEach((f,i)=>setTimeout(()=>tone(f,'sine',.14,.14),i*80));}
+function sndApplause(){
+  if(!S.soundOn) return;
+  // Fanfare then noise burst simulating applause
+  try{
+    const a=ac();
+    // Fanfare melody
+    [[523,.0],[659,.15],[784,.3],[1046,.5]].forEach(([f,t])=>{
+      const o=a.createOscillator(),g=a.createGain();
+      o.connect(g);g.connect(a.destination);
+      o.type='sine';o.frequency.value=f;
+      g.gain.setValueAtTime(0,a.currentTime+t);
+      g.gain.linearRampToValueAtTime(.25,a.currentTime+t+.05);
+      g.gain.exponentialRampToValueAtTime(.001,a.currentTime+t+.4);
+      o.start(a.currentTime+t);o.stop(a.currentTime+t+.5);
+    });
+    // White noise applause bursts
+    for(let i=0;i<6;i++){
+      setTimeout(()=>{
+        try{
+          const buf=a.createBuffer(1,a.sampleRate*.15,a.sampleRate);
+          const d=buf.getChannelData(0);
+          for(let j=0;j<d.length;j++) d[j]=(Math.random()*2-1)*.15;
+          const src=a.createBufferSource(),g2=a.createGain();
+          src.buffer=buf;src.connect(g2);g2.connect(a.destination);
+          g2.gain.setValueAtTime(.3,a.currentTime);
+          g2.gain.exponentialRampToValueAtTime(.001,a.currentTime+.15);
+          src.start();
+        }catch(e){}
+      },800+i*120);
+    }
+  }catch(e){}
+}
 
 function toggleSound(){
   S.soundOn=!S.soundOn;
@@ -695,11 +798,20 @@ window.addEventListener('load',function(){
     document.getElementById('themeBtn').textContent='☀️';
   }
 
+  // Restore saved name & avatar from localStorage
+  const savedName=localStorage.getItem('ct_name')||'';
+  const savedAvatar=parseInt(localStorage.getItem('ct_avatar')||'0')||0;
+  if(savedName){
+    document.getElementById('cName').value=savedName;
+    document.getElementById('jName').value=savedName;
+  }
+  S.myAvatar=Math.min(savedAvatar,AVATARS.length-1);
+
   // Avatars
   const avRow=document.getElementById('avRow');
   AVATARS.forEach(function(a,i){
     const b=document.createElement('button');
-    b.className='avbtn'+(i===0?' sel':'');b.textContent=a.e;
+    b.className='avbtn'+(i===S.myAvatar?' sel':'');b.textContent=a.e;
     b.onclick=function(){S.myAvatar=i;document.querySelectorAll('.avbtn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');};
     avRow.appendChild(b);
   });
@@ -931,6 +1043,12 @@ function doUndo(){
   S.socket.emit('undoSync',{img:dataUrl});
 }
 function doClear(){if(!S.isDrawer)return;saveUndo();fillWhite();S.socket.emit('clear');}
+function downloadCanvas(){
+  const a=document.createElement('a');
+  a.download='ciztap-'+(S.myWord||'cizilis')+'.png';
+  a.href=S.canvas.toDataURL('image/png');
+  a.click();
+}
 
 // ══════════════════════════════════════════════════════════
 //  DIFFICULTY / CUSTOM WORDS
@@ -975,7 +1093,7 @@ function connectSocket(){
 
   sk.on('gameStarted',function(){
     goScreen('gameScreen');
-    clearChat(); S.undoStack=[];
+    clearChat(); S.undoStack=[]; S.drawings=[]; S.currentDrawerId=null;
     S.isDrawer=false; S.guessedCorrect=false;
     setDrawerMode(false); showCover('','');
     fillWhite();
@@ -986,7 +1104,7 @@ function connectSocket(){
   sk.on('waitingWord',function(data){
     S.isDrawer=(data.drawerId===S.myId);
     if(!S.isDrawer)showCover(data.drawerName+' söz seçir...','⏳ Gözləyin');
-    document.getElementById('wordHint').textContent='_ _ _';
+    document.getElementById('wordHint').textContent='';
     renderGamePlayers(data.drawerId);
   });
 
@@ -1009,12 +1127,17 @@ function connectSocket(){
     fillWhite();
     document.getElementById('gRound').textContent=data.round;
     document.getElementById('gMaxR').textContent=data.maxRounds;
-    document.getElementById('wordHint').textContent=data.hint;
+    document.getElementById('wordHint').textContent='';
     document.getElementById('wordHint').classList.remove('revealed');
     hideCover(); setTimerUI(data.timeLeft,data.timeLeft);
     renderGamePlayers(data.drawerId);
     setDrawerMode(S.isDrawer);
-    // Resize after toolbar toggled (2-frame delay)
+    // Slide-in animation
+    const gm=document.querySelector('.gmain');
+    gm.classList.remove('slide-out');
+    void gm.offsetWidth;
+    gm.classList.add('slide-in');
+    setTimeout(()=>gm.classList.remove('slide-in'),380);
     const gc=document.getElementById('gCode');
     if(S.isHost){gc.style.display='block';gc.textContent=S.code;}else{gc.style.display='none';}
     if(S.isDrawer)sysMsg('Siz çizirsiniz! Söz: "'+S.myWord+'"');
@@ -1026,11 +1149,7 @@ function connectSocket(){
     if(data.t<=10&&data.t>0)sndTimer();
   });
 
-  sk.on('hintUpdate',function(data){
-    if(!S.isDrawer) document.getElementById('wordHint').textContent=data.hint;
-  });
-
-  // draw/fill/shape received from server — render using our canvas size
+  // draw/fill/shape received from server
   sk.on('draw',  function(d){if(!S.isDrawer)renderDraw(d);});
   sk.on('fill',  function(d){if(!S.isDrawer)floodFill(d.x, d.y, d.color);});
   sk.on('shape', function(d){if(!S.isDrawer)renderDraw(d);});
@@ -1046,16 +1165,23 @@ function connectSocket(){
     S.players=S.players.map(p=>{const f=data.scores.find(x=>x.id===p.id);return f?Object.assign({},p,{score:f.score}):p;});
     renderGamePlayers();
     const isMe=(data.id===S.myId);
+    const isMyDrawing=(data.drawerId===S.myId);
     if(isMe){S.guessedCorrect=true;setGuessedMode();}
-    showScorePop('+'+data.pts); if(isMe)flashCanvas();
-    addChat({name:data.name,text:'✅ Tapdı! +'+data.pts+' xal',ok:true});
+    if(isMe||isMyDrawing) showScorePop('+'+( isMyDrawing&&!isMe ? data.drawerPts : data.pts ));
+    if(isMe)flashCanvas();
+    addChat({name:data.name,text:'✅ tapdı! +'+data.pts+' xal',ok:true});
     toast(isMe?'🎉 +'+data.pts+' xal!':data.name+' tapdı! 🎯',isMe?'ok':'info');
     sndOk();
   });
 
+  // closeAnswer — yalnız öz ekranında görünür, rəqiblər görmür
+  sk.on('closeAnswer',function(data){
+    addChat({sys:true,text:'🔥 Yaxın! "'+data.text+'"'});
+    sndClose();
+  });
+
   sk.on('chat',function(data){
-    if(data.close){addChat({name:data.name,text:data.text+'  🔥 Yaxın!',close:true});sndClose();}
-    else addChat({name:data.name,text:data.text});
+    addChat({name:data.name,text:data.text});
   });
 
   sk.on('turnEnd',function(data){
@@ -1063,6 +1189,22 @@ function connectSocket(){
     document.getElementById('wordHint').textContent=data.word;
     document.getElementById('wordHint').classList.add('revealed');
     S.players=S.players.map(p=>{const f=data.scores.find(x=>x.id===p.id);return f?Object.assign({},p,{score:f.score}):p;});
+    // Save drawing snapshot for best-drawing gallery
+    try{
+      const drawerP=S.players.find(p=>p.id===S.currentDrawerId);
+      S.drawings.push({
+        word:data.word,
+        drawerName:drawerP?drawerP.name:'?',
+        dataUrl:S.canvas.toDataURL('image/png'),
+        votes:0,
+      });
+      if(S.drawings.length>20) S.drawings.shift();
+    }catch(e){}
+    // Slide-out animation
+    const gm=document.querySelector('.gmain');
+    gm.classList.remove('slide-in');
+    gm.classList.add('slide-out');
+    setTimeout(()=>gm.classList.remove('slide-out'),300);
     renderGamePlayers(); showRevealModal(data.word,data.scores); sysMsg('Cavab: '+data.word);
   });
 
@@ -1131,10 +1273,12 @@ function renderLobbyPlayers(){
 }
 
 function renderGamePlayers(drawerId){
+  // Update currentDrawerId so canvas border stays correct even on re-renders
+  if(drawerId!==undefined) S.currentDrawerId=drawerId;
   const panel=document.getElementById('ppanel');
   panel.innerHTML='<button class="leave-panel-btn" onclick="leaveRoom()">← Çıx</button>';
-  S.players.forEach(function(p){
-    const isDrawing=drawerId?p.id===drawerId:false;
+  S.players.forEach(function(p,idx){
+    const isDrawing=S.currentDrawerId?p.id===S.currentDrawerId:false;
     const isMe=p.id===S.myId;
     const av=AVATARS[p.avatar]||AVATARS[0];
     const div=document.createElement('div');
@@ -1142,7 +1286,7 @@ function renderGamePlayers(drawerId){
     div.innerHTML='<div class="pcard-row">'+
       '<div class="pc-av" style="background:'+av.bg+';color:'+av.c+'">'+av.e+'</div>'+
       '<div class="pc-info"><div class="pc-name">'+esc(p.name)+(isMe?' ★':'')+'</div>'+
-      '<div class="pc-st">'+(isDrawing?'🖌️':'')+'</div></div>'+
+      '<div class="pc-st">'+(isDrawing?'✏️':'')+'</div></div>'+
       '<div class="pc-score">'+p.score+'</div></div>';
     if(S.isHost&&!p.isHost&&!isMe){
       const kb=document.createElement('button');kb.className='pc-kick';kb.textContent='✕';
@@ -1150,6 +1294,16 @@ function renderGamePlayers(drawerId){
     }
     panel.appendChild(div);
   });
+  // Canvas border: color of current drawer
+  const cw=document.getElementById('cwrap');
+  if(S.currentDrawerId){
+    const drawerIdx=S.players.findIndex(p=>p.id===S.currentDrawerId);
+    const clr=PLAYER_COLORS[drawerIdx>=0?drawerIdx%PLAYER_COLORS.length:0];
+    cw.style.setProperty('--drawer-clr',clr);
+    cw.classList.add('drawer-active');
+  } else {
+    cw.classList.remove('drawer-active');
+  }
 }
 
 function showCover(title,sub){
@@ -1214,15 +1368,46 @@ function showRevealModal(word,scores){
 
 function showGameOver(scores,winner,winnerAv){
   goScreen('gameOverScreen');
+  sndApplause();
   const av=AVATARS[winnerAv]||AVATARS[0];
   document.getElementById('goWinner').textContent=av.e+' '+winner;
   const sorted=scores.slice().sort((a,b)=>b.score-a.score);
-  document.getElementById('goScores').innerHTML=sorted.map((s,i)=>{
+
+  // ── Podium ─────────────────────────────────────────────
+  let podiumHtml='<div class="podium-wrap">';
+  // Order: 2nd | 1st | 3rd
+  const podOrder=[1,0,2];
+  const podClass=['p2','p1','p3'];
+  const podMedal=['🥈','🥇','🥉'];
+  podOrder.forEach(function(rank,colIdx){
+    const s=sorted[rank];
+    if(!s) return;
     const sav=AVATARS[s.avatar]||AVATARS[0];
-    return'<div class="srow '+(i===0?'first':'')+'"><div class="srank">'+(['🥇','🥈','🥉'][i]||(i+1)+'.')+'</div>'+
-      '<div class="sav">'+sav.e+'</div><div class="sname">'+esc(s.name)+'</div>'+
-      '<div class="spts">'+s.score+' xal</div></div>';
-  }).join('');
+    podiumHtml+='<div class="pod '+podClass[colIdx]+'">'
+      +'<div class="pod-avatar">'+sav.e+'</div>'
+      +'<div class="pod-name">'+esc(s.name)+'</div>'
+      +'<div class="pod-score">'+s.score+' xal</div>'
+      +'<div class="pod-block">'+podMedal[colIdx]+'</div>'
+      +'</div>';
+  });
+  podiumHtml+='</div>';
+  // 4th+ as simple rows
+  if(sorted.length>3){
+    podiumHtml+='<div class="pod-rest">';
+    sorted.slice(3).forEach(function(s,i){
+      const sav=AVATARS[s.avatar]||AVATARS[0];
+      podiumHtml+='<div class="pod-rest-row">'
+        +'<div class="pod-rest-rank">'+(i+4)+'.</div>'
+        +'<div style="font-size:.9rem">'+sav.e+'</div>'
+        +'<div style="flex:1;font-size:.8rem;font-weight:700">'+esc(s.name)+'</div>'
+        +'<div style="font-size:.8rem;font-weight:800;color:var(--gold)">'+s.score+' xal</div>'
+        +'</div>';
+    });
+    podiumHtml+='</div>';
+  }
+  document.getElementById('goScores').innerHTML=podiumHtml;
+
+  // ── Stats ───────────────────────────────────────────────
   const sg=document.getElementById('goStats');
   if(scores.some(s=>s.stats)){
     const mg=scores.slice().sort((a,b)=>(b.stats&&b.stats.guessed||0)-(a.stats&&a.stats.guessed||0))[0];
@@ -1238,7 +1423,40 @@ function showGameOver(scores,winner,winnerAv){
         '<div class="stat-val">'+(bd&&bd.stats?bd.stats.drew:0)+'</div>'+
         '<div class="stat-name">'+(AVATARS[bd&&bd.avatar]||AVATARS[0]).e+' '+(bd?esc(bd.name):'—')+'</div></div>'+
     '</div></div>';
+  } else { sg.innerHTML=''; }
+
+  // ── Best Drawing Gallery ────────────────────────────────
+  if(S.drawings&&S.drawings.length>0){
+    const bdSection=document.createElement('div');
+    bdSection.className='bd-section';
+    bdSection.innerHTML='<div class="bd-title">🎨 Ən yaxşı çəkiliş — səs ver!</div><div class="bd-grid" id="bdGrid"></div>';
+    sg.after(bdSection);
+    let votedIdx=null;
+    const grid=bdSection.querySelector('#bdGrid');
+    S.drawings.forEach(function(dr,i){
+      const card=document.createElement('div');
+      card.className='bd-card';
+      card.innerHTML='<img class="bd-img" src="'+dr.dataUrl+'" alt="'+esc(dr.word)+'">'
+        +'<div class="bd-info">'
+        +'<div class="bd-word">'+esc(dr.word)+'</div>'
+        +'<div class="bd-drawer">'+esc(dr.drawerName)+'</div>'
+        +'<div class="bd-votes" id="bdv'+i+'">👍 '+dr.votes+'</div>'
+        +'</div>';
+      card.onclick=function(){
+        if(votedIdx===i) return;
+        if(votedIdx!==null){
+          S.drawings[votedIdx].votes--;
+          document.getElementById('bdv'+votedIdx).textContent='👍 '+S.drawings[votedIdx].votes;
+          grid.children[votedIdx].classList.remove('voted');
+        }
+        votedIdx=i; dr.votes++;
+        document.getElementById('bdv'+i).textContent='👍 '+dr.votes;
+        card.classList.add('voted');
+      };
+      grid.appendChild(card);
+    });
   }
+
   document.getElementById('goAgain').style.display=S.isHost?'flex':'none';
 }
 
@@ -1259,7 +1477,7 @@ function sysMsg(t){addChat({sys:true,text:t});}
 function clearChat(){document.getElementById('cmsgs').innerHTML='';}
 function sendGuess(){
   const inp=document.getElementById('cinput');
-  const txt=inp.value.trim();
+  const txt=inp.value.trim().toLowerCase();
   if(!txt||S.guessedCorrect||S.isDrawer) return;
   S.socket.emit('guess',{text:txt}); inp.value='';
 }
@@ -1271,6 +1489,8 @@ function createRoom(){
   const name=document.getElementById('cName').value.trim();
   if(!name) return showErr('Ad daxil edin.');
   S.myName=name;
+  localStorage.setItem('ct_name',name);
+  localStorage.setItem('ct_avatar',String(S.myAvatar));
   let cw=[];
   if(document.getElementById('cwToggle').checked){
     cw=document.getElementById('cwInput').value.split(/[\n,]+/).map(w=>w.trim()).filter(w=>w.length>1).slice(0,50);
@@ -1287,6 +1507,8 @@ function joinRoom(){
   if(!name) return showErr('Ad daxil edin.');
   if(!/^\d{5}$/.test(code)) return showErr('5 rəqəmli kodu daxil edin.');
   S.myName=name;
+  localStorage.setItem('ct_name',name);
+  localStorage.setItem('ct_avatar',String(S.myAvatar));
   S.socket.emit('joinRoom',{name,avatar:S.myAvatar,code});
 }
 function emitStart(){S.socket.emit('startGame');}
