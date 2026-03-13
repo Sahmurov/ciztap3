@@ -1607,11 +1607,12 @@ function stopAutoStartUI(){
 function emitForceStart(){ S.socket.emit('forceStart'); }
 function emitStopAutoStart(){ S.socket.emit('stopAutoStart'); }
 function emitPlayAgain(){ S.socket.emit('playAgain'); }
+function sendGuess(){
   const inp=document.getElementById('cinput');
   const txt=inp.value.trim().toLowerCase();
   if(!txt||S.guessedCorrect||S.isDrawer) return;
   S.socket.emit('guess',{text:txt}); inp.value='';
-
+}
 
 // ══════════════════════════════════════════════════════════
 //  ACTIONS
