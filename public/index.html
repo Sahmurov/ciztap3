@@ -401,7 +401,37 @@ body.light .cover{background:rgba(240,244,248,.93)}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
 
-/* ── Drawing pencil animation on player card ── */
+/* ── Rank badge on player card ── */
+.pc-rank{
+  width:20px;height:20px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:.65rem;font-weight:800;flex-shrink:0;margin-right:2px;
+}
+.pc-rank-medal{font-size:.82rem;line-height:1}
+.pc-rank-n{background:var(--card);border:1.5px solid var(--border);color:var(--sub);font-size:.68rem}
+
+/* ── Drawer word overlay (inside cwrap) ── */
+.word-overlay{
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.68);color:#f5c842;
+  font-family:'Baloo 2',cursive;font-size:.95rem;font-weight:800;
+  padding:3px 14px;border-radius:20px;pointer-events:none;
+  display:none;z-index:4;white-space:nowrap;max-width:90%;
+  overflow:hidden;text-overflow:ellipsis;
+  border:1px solid rgba(245,200,66,.3);
+}
+
+/* ── Auto-start bar in lobby ── */
+.autostart-bar{
+  background:rgba(0,145,194,.08);border:1px solid rgba(0,145,194,.25);
+  border-radius:10px;padding:12px 14px;margin-bottom:12px;
+  display:none;flex-direction:column;gap:8px;
+}
+.autostart-bar.show{display:flex}
+.as-title{font-size:.82rem;font-weight:700;color:var(--blue);display:flex;align-items:center;gap:6px}
+.as-countdown{font-family:'Baloo 2',cursive;font-size:1.5rem;font-weight:800;color:var(--gold);text-align:center}
+.as-btns{display:flex;gap:7px}
+.as-progress{height:4px;background:var(--border);border-radius:99px;overflow:hidden}
+.as-progress-fill{height:100%;background:var(--blue);border-radius:99px;transition:width 1s linear}
 @keyframes pencilDraw{
   0%{transform:rotate(-15deg) translate(0,0)}
   25%{transform:rotate(-5deg) translate(2px,-2px)}
@@ -570,6 +600,15 @@ body.light .cover{background:rgba(240,244,248,.93)}
       <div class="pill">🗂 <span id="lCat">Hamısı</span></div>
       <div class="pill" id="lDiff">Hamısı</div>
     </div>
+    <div class="autostart-bar" id="autostartBar">
+      <div class="as-title">⏱ Oyun avtomatik başlayır...</div>
+      <div class="as-progress"><div class="as-progress-fill" id="asProgressFill" style="width:100%"></div></div>
+      <div class="as-countdown" id="asCountdown">30</div>
+      <div class="as-btns" id="asHostBtns" style="display:none">
+        <button class="btn btn-g" style="flex:1;font-size:.83rem" onclick="emitForceStart()">▶ İndi Başlat</button>
+        <button class="btn btn-gray" style="flex:1;font-size:.83rem" onclick="emitStopAutoStart()">⏹ Durdur</button>
+      </div>
+    </div>
     <div id="lwait" class="wait-txt">Oyunçular gözlənilir<span class="dots"></span></div>
     <button id="startBtn" class="btn btn-g" style="display:none" onclick="emitStart()">Oyunu Başlat 🎮</button>
     <div id="notHost" style="display:none;text-align:center;color:var(--sub);font-size:.83rem;font-weight:600;padding:5px">Ev sahibi oyunu başladacaq...</div>
@@ -612,6 +651,7 @@ body.light .cover{background:rgba(240,244,248,.93)}
         <canvas id="previewCanvas"></canvas>
         <div class="cover" id="cover"><div class="spin"></div><p>Yüklənir...</p></div>
         <button class="dl-btn" id="dlBtn" onclick="downloadCanvas()" title="PNG yüklə">⬇ PNG</button>
+        <div class="word-overlay" id="wordOverlay"></div>
       </div>
       <!-- toolbar always rendered, JS toggles .hidden class -->
       <div class="toolbar hidden" id="toolbar">
@@ -1095,7 +1135,7 @@ function connectSocket(){
     goScreen('gameScreen');
     clearChat(); S.undoStack=[]; S.drawings=[]; S.currentDrawerId=null;
     S.isDrawer=false; S.guessedCorrect=false;
-    setDrawerMode(false); showCover('','');
+    setDrawerMode(false); showCover('',''); updateWordOverlay('');
     fillWhite();
     requestAnimationFrame(scaleCwrap);
     sysMsg('Oyun başladı! 🎮'); sndStart();
@@ -1119,12 +1159,13 @@ function connectSocket(){
   sk.on('yourWord',function(data){
     S.myWord=data.word;
     document.getElementById('wordHint').textContent=data.word;
+    updateWordOverlay(data.word);
   });
 
   sk.on('turnStart',function(data){
     S.isDrawer=(data.drawerId===S.myId);
     S.guessedCorrect=false; S.undoStack=[];
-    fillWhite();
+    fillWhite(); updateWordOverlay('');
     document.getElementById('gRound').textContent=data.round;
     document.getElementById('gMaxR').textContent=data.maxRounds;
     document.getElementById('wordHint').textContent='';
@@ -1186,10 +1227,10 @@ function connectSocket(){
 
   sk.on('turnEnd',function(data){
     S.isDrawer=false; setDrawerMode(false); setGuessedMode(true); S.myWord='';
+    updateWordOverlay('');
     document.getElementById('wordHint').textContent=data.word;
     document.getElementById('wordHint').classList.add('revealed');
     S.players=S.players.map(p=>{const f=data.scores.find(x=>x.id===p.id);return f?Object.assign({},p,{score:f.score}):p;});
-    // Save drawing snapshot for best-drawing gallery
     try{
       const drawerP=S.players.find(p=>p.id===S.currentDrawerId);
       S.drawings.push({
@@ -1200,7 +1241,6 @@ function connectSocket(){
       });
       if(S.drawings.length>20) S.drawings.shift();
     }catch(e){}
-    // Slide-out animation
     const gm=document.querySelector('.gmain');
     gm.classList.remove('slide-in');
     gm.classList.add('slide-out');
@@ -1209,7 +1249,40 @@ function connectSocket(){
   });
 
   sk.on('gameOver',function(data){setTimeout(()=>showGameOver(data.scores,data.winner,data.winnerAvatar),5600);});
-  sk.on('gamePaused',function(){showCover('⏸ Oyun dayandı','Yeni oyunçu gözlənilir...');toast('Oyunçu sayı azaldı.','bad');});
+
+  sk.on('gamePaused',function(data){
+    const awaiting=(data&&data.awaitingName)?data.awaitingName:null;
+    const msg=awaiting
+      ? '⏸ Oyun dayandı\n"'+awaiting+'" qayıdana qədər gözlənilir'
+      : '⏸ Oyun dayandı';
+    showCover(msg, awaiting?'Yalnız o qoşula bilər':'Yeni oyunçu gözlənilir...');
+    // Host sees "Continue Game" button on cover
+    if(S.isHost){
+      const ov=document.getElementById('cover');
+      const btn=document.createElement('button');
+      btn.className='btn btn-b';btn.style.marginTop='10px';btn.style.fontSize='.83rem';
+      btn.textContent='▶ Davam Et (keçilsin)';
+      btn.onclick=function(){S.socket.emit('continueGame');};
+      ov.appendChild(btn);
+    }
+    toast('Oyunçu sayı azaldı.','bad');
+  });
+
+  // Play-again lobby with 30s auto-start
+  sk.on('playAgainLobby',function(data){
+    S.players=data.players;
+    goScreen('lobbyScreen');
+    showLobby(data.settings);
+    startAutoStartUI(data.timeLeft);
+  });
+
+  sk.on('autoStartTick',function(data){
+    updateAutoStartUI(data.t);
+  });
+
+  sk.on('autoStartStopped',function(){
+    stopAutoStartUI();
+  });
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1245,6 +1318,10 @@ function showLobby(settings){
   document.getElementById('lTime').textContent=settings.drawTime;
   document.getElementById('lCat').textContent=settings.category||'Hamısı';
   document.getElementById('lDiff').textContent=DIFF_LABELS[settings.difficulty]||'Hamısı';
+  // Reset autostart bar
+  const bar=document.getElementById('autostartBar');
+  if(bar) bar.classList.remove('show');
+  document.getElementById('lwait').style.display='';
   renderLobbyPlayers();
   document.getElementById('startBtn').style.display=S.isHost?'block':'none';
   document.getElementById('notHost').style.display=S.isHost?'none':'block';
@@ -1273,17 +1350,29 @@ function renderLobbyPlayers(){
 }
 
 function renderGamePlayers(drawerId){
-  // Update currentDrawerId so canvas border stays correct even on re-renders
   if(drawerId!==undefined) S.currentDrawerId=drawerId;
   const panel=document.getElementById('ppanel');
   panel.innerHTML='<button class="leave-panel-btn" onclick="leaveRoom()">← Çıx</button>';
-  S.players.forEach(function(p,idx){
+  // Sort by score descending for rank
+  const sorted=[...S.players].sort((a,b)=>b.score-a.score);
+  const rankMap={};
+  sorted.forEach((p,i)=>rankMap[p.id]=i);
+  // Display in score order
+  sorted.forEach(function(p){
+    const rank=rankMap[p.id];
     const isDrawing=S.currentDrawerId?p.id===S.currentDrawerId:false;
     const isMe=p.id===S.myId;
     const av=AVATARS[p.avatar]||AVATARS[0];
+    // Rank badge
+    const MEDAL_COLORS=['#f5c842','#b0b8c1','#c9795a'];
+    let rankHtml;
+    if(rank===0) rankHtml='<div class="pc-rank pc-rank-medal" style="color:'+MEDAL_COLORS[0]+'">🥇</div>';
+    else if(rank===1) rankHtml='<div class="pc-rank pc-rank-medal" style="color:'+MEDAL_COLORS[1]+'">🥈</div>';
+    else if(rank===2) rankHtml='<div class="pc-rank pc-rank-medal" style="color:'+MEDAL_COLORS[2]+'">🥉</div>';
+    else rankHtml='<div class="pc-rank pc-rank-n">'+(rank+1)+'</div>';
     const div=document.createElement('div');
     div.className='pcard'+(isDrawing?' drawing':'')+(isMe?' isme':'');
-    div.innerHTML='<div class="pcard-row">'+
+    div.innerHTML='<div class="pcard-row">'+rankHtml+
       '<div class="pc-av" style="background:'+av.bg+';color:'+av.c+'">'+av.e+'</div>'+
       '<div class="pc-info"><div class="pc-name">'+esc(p.name)+(isMe?' ★':'')+'</div>'+
       '<div class="pc-st">'+(isDrawing?'✏️':'')+'</div></div>'+
@@ -1475,7 +1564,49 @@ function addChat(m){
 }
 function sysMsg(t){addChat({sys:true,text:t});}
 function clearChat(){document.getElementById('cmsgs').innerHTML='';}
-function sendGuess(){
+function updateWordOverlay(word){
+  const el=document.getElementById('wordOverlay');
+  if(!el) return;
+  if(word && S.isDrawer){
+    el.textContent='✏️ '+word;
+    el.style.display='block';
+  } else {
+    el.style.display='none';
+    el.textContent='';
+  }
+}
+
+// ── Auto-start UI ─────────────────────────────────────────
+let _asTotal=30;
+function startAutoStartUI(t){
+  _asTotal=t;
+  const bar=document.getElementById('autostartBar');
+  if(!bar) return;
+  bar.classList.add('show');
+  document.getElementById('asCountdown').textContent=t;
+  document.getElementById('asProgressFill').style.width='100%';
+  const hostBtns=document.getElementById('asHostBtns');
+  if(hostBtns) hostBtns.style.display=S.isHost?'flex':'none';
+  document.getElementById('lwait').style.display='none';
+  document.getElementById('startBtn') && (document.getElementById('startBtn').style.display='none');
+}
+function updateAutoStartUI(t){
+  const c=document.getElementById('asCountdown');
+  const f=document.getElementById('asProgressFill');
+  if(c) c.textContent=t;
+  if(f) f.style.width=Math.round(t/_asTotal*100)+'%';
+}
+function stopAutoStartUI(){
+  const bar=document.getElementById('autostartBar');
+  if(bar) bar.classList.remove('show');
+  document.getElementById('lwait').style.display='';
+  if(S.isHost && document.getElementById('startBtn'))
+    document.getElementById('startBtn').style.display='block';
+}
+
+function emitForceStart(){ S.socket.emit('forceStart'); }
+function emitStopAutoStart(){ S.socket.emit('stopAutoStart'); }
+function emitPlayAgain(){ S.socket.emit('playAgain'); }
   const inp=document.getElementById('cinput');
   const txt=inp.value.trim().toLowerCase();
   if(!txt||S.guessedCorrect||S.isDrawer) return;
@@ -1512,7 +1643,6 @@ function joinRoom(){
   S.socket.emit('joinRoom',{name,avatar:S.myAvatar,code});
 }
 function emitStart(){S.socket.emit('startGame');}
-function emitPlayAgain(){S.socket.emit('playAgain');}
 function leaveRoom(){S.socket.emit('leaveRoom');S.code='';S.players=[];S.isHost=false;}
 function kickPlayer(id){if(!confirm('Bu oyunçunu çıxarmaq istəyirsiniz?'))return;S.socket.emit('kick',{targetId:id});}
 function copyCode(){navigator.clipboard.writeText(S.code).then(()=>toast('Kod kopyalandı: '+S.code,'ok')).catch(()=>toast('Kod: '+S.code,'info'));}
