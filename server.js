@@ -273,9 +273,10 @@ const rooms = {};
 
 function safeTimer(r) {
   if (!r) return;
-  if (r._tick)   { clearInterval(r._tick);  r._tick   = null; }
-  if (r._choice) { clearTimeout(r._choice); r._choice = null; }
-  if (r._end)    { clearTimeout(r._end);    r._end    = null; }
+  if (r._tick)      { clearInterval(r._tick);   r._tick      = null; }
+  if (r._choice)    { clearTimeout(r._choice);  r._choice    = null; }
+  if (r._end)       { clearTimeout(r._end);     r._end       = null; }
+  if (r._autoStart) { clearInterval(r._autoStart); r._autoStart = null; }
 }
 
 function startTurn(code) {
@@ -382,7 +383,9 @@ function doLeave(socket, code) {
   if (r.drawerIdx >= r.players.length) r.drawerIdx = r.players.length - 1;
   if (r.players.length < 2) {
     safeTimer(r); r.started = false; r.paused = true;
-    io.to(code).emit('gamePaused');
+    // Remember who left so only they can rejoin
+    r.awaitingPlayer = me ? { name: me.name } : null;
+    io.to(code).emit('gamePaused', { awaitingName: me ? me.name : null });
   } else if (wasDrawer) {
     safeTimer(r);
     io.to(code).emit('clearCanvas');
@@ -700,7 +703,8 @@ io.on('connection', function(socket) {
       code, round: 1, maxRounds: rounds, drawTime, category, difficulty, customWords,
       drawerIdx: 0, started: false, paused: false,
       word: null, choices: [], guessed: [], recentWords: [],
-      _tick: null, _choice: null, _end: null, timeLeft: 0, _ending: false,
+      _tick: null, _choice: null, _end: null, _autoStart: null,
+      timeLeft: 0, _ending: false, awaitingPlayer: null,
       players: [{ id: socket.id, name, avatar, score: 0, isHost: true, stats: { guessed: 0, drew: 0, totalPts: 0 } }],
     };
     socket.join(code); socket.data.code = code;
@@ -720,6 +724,16 @@ io.on('connection', function(socket) {
     if (!/^\d{5}$/.test(code)) return socket.emit('err', '5 rəqəmli kodu daxil edin.');
     const r = rooms[code];
     if (!r) return socket.emit('err', 'Otaq tapılmadı.');
+    // Name uniqueness
+    if (r.players.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+      return socket.emit('err', 'Bu ad artıq istifadə olunur. Başqa ad seçin.');
+    }
+    // If game is paused waiting for a specific player, only that player can join
+    if (r.paused && r.awaitingPlayer) {
+      if (r.awaitingPlayer.name.toLowerCase() !== name.toLowerCase()) {
+        return socket.emit('err', `Otaq ${r.awaitingPlayer.name} adlı oyunçunu gözləyir.`);
+      }
+    }
     if (r.started && !r.paused) return socket.emit('err', 'Oyun davam edir.');
     if (r.players.length >= 8) return socket.emit('err', 'Otaq doludur (maks 8).');
     const p = { id: socket.id, name, avatar, score: 0, isHost: false, stats: { guessed: 0, drew: 0, totalPts: 0 } };
@@ -731,7 +745,7 @@ io.on('connection', function(socket) {
       settings: { rounds: r.maxRounds, drawTime: r.drawTime, category: r.category, difficulty: r.difficulty, customWords: r.customWords } });
     socket.to(code).emit('playerUpdate', { players: r.players, msg: name + ' qoşuldu! 👋' });
     if (r.paused && r.players.length >= 2) {
-      r.paused = false; r.started = true;
+      r.paused = false; r.started = true; r.awaitingPlayer = null;
       r.players.forEach(p => p.score = 0);
       io.to(code).emit('gameStarted');
       setTimeout(() => { if (rooms[code]) startTurn(code); }, 1500);
@@ -878,8 +892,57 @@ io.on('connection', function(socket) {
     if (!r || r.started) return;
     const me = r.players.find(p => p.id === socket.id);
     if (!me || !me.isHost) return;
-    r.round = 1; r.drawerIdx = 0; r.started = true; r.paused = false; r.recentWords = [];
+    // Reset scores, don't start yet — 30s auto-start countdown
+    r.round = 1; r.drawerIdx = 0; r.started = false; r.paused = false;
+    r.recentWords = []; r.awaitingPlayer = null;
     r.players.forEach(p => { p.score = 0; p.stats = { guessed: 0, drew: 0, totalPts: 0 }; });
+    let countdown = 30;
+    io.to(r.code).emit('playAgainLobby', {
+      timeLeft: countdown, players: r.players,
+      settings: { rounds: r.maxRounds, drawTime: r.drawTime, category: r.category, difficulty: r.difficulty },
+    });
+    r._autoStart = setInterval(function() {
+      if (!rooms[r.code]) { clearInterval(r._autoStart); r._autoStart = null; return; }
+      countdown--;
+      io.to(r.code).emit('autoStartTick', { t: countdown });
+      if (countdown <= 0) {
+        clearInterval(r._autoStart); r._autoStart = null;
+        if (r.players.length < 2) return;
+        r.started = true;
+        io.to(r.code).emit('gameStarted');
+        setTimeout(() => startTurn(r.code), 800);
+      }
+    }, 1000);
+  });
+
+  socket.on('forceStart', function() {
+    const r  = rooms[socket.data && socket.data.code];
+    if (!r || r.started) return;
+    const me = r.players.find(p => p.id === socket.id);
+    if (!me || !me.isHost) return;
+    if (r.players.length < 2) return socket.emit('err', 'Ən az 2 oyunçu lazımdır.');
+    if (r._autoStart) { clearInterval(r._autoStart); r._autoStart = null; }
+    r.started = true;
+    io.to(r.code).emit('gameStarted');
+    setTimeout(() => startTurn(r.code), 800);
+  });
+
+  socket.on('stopAutoStart', function() {
+    const r  = rooms[socket.data && socket.data.code];
+    if (!r) return;
+    const me = r.players.find(p => p.id === socket.id);
+    if (!me || !me.isHost) return;
+    if (r._autoStart) { clearInterval(r._autoStart); r._autoStart = null; }
+    io.to(r.code).emit('autoStartStopped');
+  });
+
+  socket.on('continueGame', function() {
+    const r  = rooms[socket.data && socket.data.code];
+    if (!r || !r.paused) return;
+    const me = r.players.find(p => p.id === socket.id);
+    if (!me || !me.isHost) return;
+    if (r.players.length < 2) return socket.emit('err', 'Ən az 2 oyunçu lazımdır.');
+    r.awaitingPlayer = null; r.paused = false; r.started = true;
     io.to(r.code).emit('gameStarted');
     setTimeout(() => startTurn(r.code), 800);
   });
