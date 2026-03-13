@@ -326,6 +326,19 @@ function endTurn(code) {
   if (r._ending) return;
   r._ending = true;
   safeTimer(r);
+  const drawer = r.players[r.drawerIdx];
+  // Word history log for this room
+  if (r.word) {
+    if (!r.wordLog) r.wordLog = [];
+    r.wordLog.push({
+      word:       r.word,
+      drawerName: drawer ? drawer.name : '?',
+      guessed:    r.guessed.length,
+      total:      r.players.filter(p => !drawer || p.id !== drawer.id).length,
+      at:         Date.now(),
+    });
+    if (r.wordLog.length > 20) r.wordLog.shift();
+  }
   r.players.forEach(function(p) {
     if (!p.stats) p.stats = { guessed: 0, drew: 0, totalPts: 0 };
     const drawer = r.players[r.drawerIdx];
@@ -385,138 +398,71 @@ const io = new Server(server, {
   maxHttpBufferSize: 2e5,
 });
 
-// Server-wide stats (RAM only, resets on restart)
+// Server-wide stats (RAM only — resets on restart)
 const serverStats = {
-  startTime:    Date.now(),
-  totalConns:   0,
-  totalRooms:   0,
-  peakOnline:   0,
+  startTime:  Date.now(),
+  totalConns: 0,
+  totalRooms: 0,
+  peakOnline: 0,
 };
-// Connected sockets metadata: id → { name, ip, ua, connectedAt, code }
+
+// Connected sockets: id → { device, connectedAt, code }  ← IP saxlanmır
 const connMeta = new Map();
 
-// ── Admin dashboard ───────────────────────────────────────────────────────────
+// Activity log: son 500 event RAM-da saxlanır
+const actLog = [];
+function addLog(emoji, msg) {
+  const now = new Date();
+  const ts  = now.toLocaleString('az-AZ', { dateStyle:'short', timeStyle:'medium' });
+  actLog.push({ ts, emoji, msg });
+  if (actLog.length > 500) actLog.shift();
+}
+
+// ── Admin helpers ─────────────────────────────────────────────────────────────
 const ADMIN_KEY = process.env.ADMIN_KEY || 'ciztap-admin-2025';
 
 function parseUA(ua) {
   if (!ua) return 'Naməlum';
-  // OS
   let os = 'Naməlum OS';
-  if (/Windows NT 10/i.test(ua))      os = 'Windows 10/11';
-  else if (/Windows NT 6/i.test(ua))  os = 'Windows 7/8';
-  else if (/Android (\d+)/i.test(ua)) os = 'Android ' + ua.match(/Android (\d+)/i)[1];
-  else if (/iPhone OS ([\d_]+)/i.test(ua)) os = 'iOS ' + ua.match(/iPhone OS ([\d_]+)/i)[1].replace(/_/g,'.');
-  else if (/iPad.*OS ([\d_]+)/i.test(ua))  os = 'iPadOS ' + ua.match(/iPad.*OS ([\d_]+)/i)[1].replace(/_/g,'.');
-  else if (/Mac OS X/i.test(ua))      os = 'macOS';
-  else if (/Linux/i.test(ua))         os = 'Linux';
-  // Browser
-  let br = 'Naməlum brauzer';
-  if (/SamsungBrowser\/([\d.]+)/i.test(ua))  br = 'Samsung ' + ua.match(/SamsungBrowser\/([\d.]+)/i)[1];
-  else if (/OPR\/([\d.]+)/i.test(ua))        br = 'Opera ' + ua.match(/OPR\/([\d.]+)/i)[1];
-  else if (/Edg\/([\d.]+)/i.test(ua))        br = 'Edge ' + ua.match(/Edg\/([\d.]+)/i)[1];
-  else if (/Chrome\/([\d.]+)/i.test(ua))     br = 'Chrome ' + ua.match(/Chrome\/([\d.]+)/i)[1].split('.')[0];
-  else if (/Firefox\/([\d.]+)/i.test(ua))    br = 'Firefox ' + ua.match(/Firefox\/([\d.]+)/i)[1].split('.')[0];
-  else if (/Safari\/([\d.]+)/i.test(ua))     br = 'Safari';
-  // Device type
+  if      (/Windows NT 10/i.test(ua))           os = 'Windows 10/11';
+  else if (/Windows NT 6\.3/i.test(ua))         os = 'Windows 8.1';
+  else if (/Windows NT 6\.1/i.test(ua))         os = 'Windows 7';
+  else if (/Android/i.test(ua))                 os = 'Android';
+  else if (/iPhone OS ([\d_]+)/i.test(ua))      os = 'iOS '    + ua.match(/iPhone OS ([\d_]+)/i)[1].replace(/_/g,'.');
+  else if (/iPad.*OS ([\d_]+)/i.test(ua))       os = 'iPadOS ' + ua.match(/iPad.*OS ([\d_]+)/i)[1].replace(/_/g,'.');
+  else if (/Mac OS X/i.test(ua))                os = 'macOS';
+  else if (/Linux/i.test(ua))                   os = 'Linux';
   const mob = /Mobile|Android|iPhone|iPod/i.test(ua);
   const tab = /iPad|Tablet/i.test(ua);
   const dev = tab ? '📱 Tablet' : mob ? '📱 Mobil' : '🖥️ PC';
   return dev + ' · ' + os;
 }
-
 function fmtUptime(ms) {
-  const s = Math.floor(ms/1000), m = Math.floor(s/60), h = Math.floor(m/60), d = Math.floor(h/24);
-  if (d > 0) return d+'g '+( h%24)+'s';
-  if (h > 0) return h+'s '+(m%60)+'d';
+  const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60),d=Math.floor(h/24);
+  if (d>0) return d+'g '+(h%24)+'s';
+  if (h>0) return h+'s '+(m%60)+'d';
   return m+'d '+(s%60)+'s';
 }
 function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('az-AZ',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
+function adminCheck(req, res) {
+  if (req.query.key !== ADMIN_KEY) { res.status(403).send('<h2>403</h2>'); return false; }
+  return true;
+}
 
-app.get('/admin', function(req, res) {
-  if (req.query.key !== ADMIN_KEY) {
-    return res.status(403).send('<h2>403 — Giriş qadağandır</h2>');
-  }
-
-  const now       = Date.now();
-  const uptime    = fmtUptime(now - serverStats.startTime);
-  const mem       = process.memoryUsage();
-  const memMB     = Math.round(mem.rss / 1024 / 1024);
-  const online    = connMeta.size;
-  const roomList  = Object.values(rooms);
-  const inGame    = roomList.filter(r => r.started).length;
-  const waiting   = roomList.filter(r => !r.started).length;
-  if (online > serverStats.peakOnline) serverStats.peakOnline = online;
-
-  // Build rooms HTML
-  let roomsHtml = '';
-  if (roomList.length === 0) {
-    roomsHtml = '<div class="empty">Aktiv otaq yoxdur.</div>';
-  } else {
-    roomList.forEach(function(r) {
-      const drawer = r.started ? r.players[r.drawerIdx] : null;
-      const statusBadge = r.started
-        ? (r.paused ? '<span class="badge pause">⏸ Dayandı</span>' : '<span class="badge live">▶ Oyunda</span>')
-        : '<span class="badge wait">⏳ Gözləyir</span>';
-      let playersHtml = r.players.map(function(p) {
-        const meta = connMeta.get(p.id) || {};
-        const isDrawer = drawer && drawer.id === p.id;
-        return `<tr class="${isDrawer?'drawing-row':''}">
-          <td>${isDrawer?'✏️':''} ${p.name}${p.isHost?' 👑':''}</td>
-          <td class="score">${p.score} xal</td>
-          <td class="meta">${meta.device||'?'}</td>
-          <td class="meta">${meta.connectedAt?fmtTime(meta.connectedAt):'?'}</td>
-        </tr>`;
-      }).join('');
-      roomsHtml += `
-      <div class="room-card">
-        <div class="room-hd">
-          <span class="room-code">#${r.code}</span>
-          ${statusBadge}
-          <span class="room-info">R ${r.round}/${r.maxRounds} · ${r.drawTime}s · ${r.category} · ${r.difficulty}</span>
-          <span class="room-info">${r.players.length} oyunçu</span>
-        </div>
-        ${r.started && r.word ? `<div class="cur-word">Söz: <b>${r.word}</b> · Qalan vaxt: <b>${r.timeLeft}s</b> · Tapanlar: <b>${r.guessed.length}</b></div>` : ''}
-        <table class="ptable">
-          <thead><tr><th>Ad</th><th>Xal</th><th>Cihaz</th><th>Qoşulma</th></tr></thead>
-          <tbody>${playersHtml}</tbody>
-        </table>
-      </div>`;
-    });
-  }
-
-  // Build connections HTML (all connected sockets, even those not in a room)
-  let freeConns = '';
-  connMeta.forEach(function(m, id) {
-    if (!m.code) {
-      freeConns += `<tr>
-        <td class="mono">${id.substring(0,8)}…</td>
-        <td>${m.device||'?'}</td>
-        <td>${fmtTime(m.connectedAt)}</td>
-      </tr>`;
-    }
-  });
-
-  const html = `<!DOCTYPE html>
-<html lang="az">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CizTap Admin</title>
-<meta http-equiv="refresh" content="6">
-<style>
+const ADMIN_CSS = `
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;padding:16px;font-size:14px}
-h1{font-size:1.3rem;margin-bottom:16px;color:#58a6ff}
+a{color:#58a6ff;text-decoration:none}a:hover{text-decoration:underline}
+h1{font-size:1.3rem;margin-bottom:6px;color:#58a6ff}
 h1 span{font-size:.8rem;color:#8b949e;font-weight:400;margin-left:10px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:20px}
+nav{display:flex;gap:10px;margin-bottom:16px;font-size:.83rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:20px}
 .stat{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px;text-align:center}
 .stat .val{font-size:1.6rem;font-weight:800;color:#f5c842}
 .stat .lbl{font-size:.72rem;color:#8b949e;margin-top:3px}
-.stat.green .val{color:#3fb950}
-.stat.blue  .val{color:#58a6ff}
-.stat.red   .val{color:#f85149}
+.stat.green .val{color:#3fb950}.stat.blue .val{color:#58a6ff}.stat.red .val{color:#f85149}
 .room-card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;margin-bottom:12px}
 .room-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .room-code{font-family:monospace;font-size:1rem;font-weight:800;color:#f5c842;letter-spacing:3px}
@@ -526,26 +472,126 @@ h1 span{font-size:.8rem;color:#8b949e;font-weight:400;margin-left:10px}
 .badge.pause{background:rgba(248,81,73,.12);color:#f85149;border:1px solid #f85149}
 .room-info{font-size:.74rem;color:#8b949e}
 .cur-word{font-size:.8rem;background:#1c2333;border-radius:6px;padding:5px 10px;margin-bottom:8px;color:#79c0ff}
+.word-log{margin-bottom:8px}
+.word-log-title{font-size:.72rem;color:#8b949e;margin-bottom:4px}
+.word-log-row{display:flex;gap:6px;align-items:center;font-size:.76rem;padding:2px 0;border-bottom:1px solid #21262d30}
+.wl-word{font-weight:700;color:#e6edf3;min-width:80px}
+.wl-drawer{color:#8b949e}
+.wl-result{color:#3fb950;margin-left:auto}
+.wl-time{color:#484f58;font-size:.7rem}
 .ptable{width:100%;border-collapse:collapse;font-size:.78rem}
 .ptable th{text-align:left;color:#8b949e;font-weight:600;padding:4px 6px;border-bottom:1px solid #21262d}
-.ptable td{padding:4px 6px;border-bottom:1px solid #21262d20}
+.ptable td{padding:5px 6px;border-bottom:1px solid #21262d20;vertical-align:middle}
 .ptable .score{font-weight:700;color:#f5c842}
 .ptable .meta{color:#8b949e;font-size:.72rem}
 .drawing-row td:first-child{color:#58a6ff;font-weight:700}
+.act-btn{font-size:.72rem;font-weight:700;padding:3px 8px;border-radius:6px;border:none;cursor:pointer;transition:all .15s}
+.kick-btn{background:rgba(248,81,73,.15);color:#f85149;border:1px solid rgba(248,81,73,.3)}
+.kick-btn:hover{background:#f85149;color:#fff}
+.close-btn{background:rgba(248,81,73,.1);color:#f85149;border:1px solid rgba(248,81,73,.25);font-size:.75rem;padding:3px 9px}
+.close-btn:hover{background:#f85149;color:#fff}
 .section-title{font-size:.85rem;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:1px;margin:20px 0 10px}
-table.free-table{width:100%;border-collapse:collapse;font-size:.78rem;background:#161b22;border:1px solid #30363d;border-radius:8px;overflow:hidden}
-table.free-table th{text-align:left;color:#8b949e;padding:6px 10px;border-bottom:1px solid #30363d}
-table.free-table td{padding:5px 10px;border-bottom:1px solid #21262d20}
+.free-table{width:100%;border-collapse:collapse;font-size:.78rem;background:#161b22;border:1px solid #30363d;border-radius:8px;overflow:hidden}
+.free-table th{text-align:left;color:#8b949e;padding:6px 10px;border-bottom:1px solid #30363d}
+.free-table td{padding:5px 10px;border-bottom:1px solid #21262d20}
 .mono{font-family:monospace;font-size:.75rem}
 .empty{color:#8b949e;font-style:italic;padding:10px}
-.refresh{font-size:.72rem;color:#8b949e;margin-bottom:16px}
+.refresh{font-size:.72rem;color:#8b949e;margin-bottom:14px}
 footer{margin-top:24px;font-size:.7rem;color:#484f58;text-align:center}
-</style>
-</head>
-<body>
-<h1>🎨 CizTap Admin <span>hər 6 saniyədə yenilənir</span></h1>
-<div class="refresh">Son yeniləmə: ${new Date().toLocaleTimeString('az-AZ')} · Uptime: ${uptime}</div>
+.log-row{display:flex;gap:8px;font-size:.79rem;padding:4px 0;border-bottom:1px solid #21262d20}
+.log-ts{color:#484f58;white-space:nowrap;font-size:.72rem;min-width:130px}
+.log-msg{color:#e6edf3}
+.warn-box{background:rgba(245,200,66,.08);border:1px solid rgba(245,200,66,.3);border-radius:8px;padding:10px 14px;font-size:.8rem;color:#f5c842;margin-bottom:14px}
+`;
 
+// ── Admin: main dashboard ─────────────────────────────────────────────────────
+app.get('/admin', function(req, res) {
+  if (!adminCheck(req, res)) return;
+  const K = '?key=' + ADMIN_KEY;
+  const now      = Date.now();
+  const uptime   = fmtUptime(now - serverStats.startTime);
+  const mem      = process.memoryUsage();
+  const memMB    = Math.round(mem.rss/1024/1024);
+  const online   = connMeta.size;
+  const roomList = Object.values(rooms);
+  const inGame   = roomList.filter(r=>r.started).length;
+  const waiting  = roomList.filter(r=>!r.started).length;
+  if (online > serverStats.peakOnline) serverStats.peakOnline = online;
+
+  let roomsHtml = roomList.length === 0
+    ? '<div class="empty">Aktiv otaq yoxdur.</div>'
+    : roomList.map(function(r) {
+        const drawer = r.started ? r.players[r.drawerIdx] : null;
+        const statusBadge = r.started
+          ? (r.paused ? '<span class="badge pause">⏸ Dayandı</span>' : '<span class="badge live">▶ Oyunda</span>')
+          : '<span class="badge wait">⏳ Gözləyir</span>';
+
+        // Word history
+        let wlogHtml = '';
+        if (r.wordLog && r.wordLog.length) {
+          const rows = r.wordLog.slice().reverse().slice(0,5).map(w =>
+            `<div class="word-log-row">
+               <span class="wl-word">${w.word}</span>
+               <span class="wl-drawer">✏️ ${w.drawerName}</span>
+               <span class="wl-result">${w.guessed}/${w.total} tapdı</span>
+               <span class="wl-time">${fmtTime(w.at)}</span>
+             </div>`
+          ).join('');
+          wlogHtml = `<div class="word-log"><div class="word-log-title">📋 Son sözlər</div>${rows}</div>`;
+        }
+
+        // Players table
+        const playersHtml = r.players.map(function(p) {
+          const meta = connMeta.get(p.id) || {};
+          const isDrawer = drawer && drawer.id === p.id;
+          const kickLink = `/admin/kick${K}&id=${p.id}&code=${r.code}`;
+          return `<tr class="${isDrawer?'drawing-row':''}">
+            <td>${isDrawer?'✏️':''} ${p.name}${p.isHost?' 👑':''}</td>
+            <td class="score">${p.score} xal</td>
+            <td class="meta">${meta.device||'?'}</td>
+            <td class="meta">${meta.connectedAt?fmtTime(meta.connectedAt):'?'}</td>
+            <td>${p.isHost?'':'<a href="'+kickLink+'" onclick="return confirm(\''+p.name+' çıxarılsın?\')"><button class="act-btn kick-btn">✕ Çıxar</button></a>'}</td>
+          </tr>`;
+        }).join('');
+
+        const closeLink = `/admin/closeroom${K}&code=${r.code}`;
+        return `<div class="room-card">
+          <div class="room-hd">
+            <span class="room-code">#${r.code}</span>
+            ${statusBadge}
+            <span class="room-info">R ${r.round}/${r.maxRounds} · ${r.drawTime}s · ${r.category}</span>
+            <span class="room-info">${r.players.length} oyunçu</span>
+            <a href="${closeLink}" style="margin-left:auto" onclick="return confirm('Otaq bağlansın?')"><button class="act-btn close-btn">🚪 Bağla</button></a>
+          </div>
+          ${r.started && r.word ? `<div class="cur-word">Söz: <b>${r.word}</b> · Qalan vaxt: <b>${r.timeLeft}s</b> · Tapanlar: <b>${r.guessed.length}</b></div>` : ''}
+          ${wlogHtml}
+          <table class="ptable">
+            <thead><tr><th>Ad</th><th>Xal</th><th>Cihaz</th><th>Qoşulma</th><th></th></tr></thead>
+            <tbody>${playersHtml}</tbody>
+          </table>
+        </div>`;
+      }).join('');
+
+  let freeConns = '';
+  connMeta.forEach(function(m, id) {
+    if (!m.code) freeConns += `<tr>
+      <td class="mono">${id.substring(0,8)}…</td>
+      <td class="meta">${m.device||'?'}</td>
+      <td class="meta">${fmtTime(m.connectedAt)}</td>
+    </tr>`;
+  });
+
+  const html = `<!DOCTYPE html><html lang="az"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CizTap Admin</title><meta http-equiv="refresh" content="6">
+<style>${ADMIN_CSS}</style></head><body>
+<h1>🎨 CizTap Admin <span>hər 6s yenilənir</span></h1>
+<nav>
+  <a href="/admin${K}">📊 Dashboard</a>
+  <a href="/admin/logs${K}">📋 Fəaliyyət logu</a>
+</nav>
+<div class="refresh">Son yeniləmə: ${new Date().toLocaleTimeString('az-AZ')} · Uptime: ${uptime}</div>
+<div class="warn-box">⚠️ Bu server pulsuz planda işləyir — restart olduqda bütün məlumatlar sıfırlanır.</div>
 <div class="grid">
   <div class="stat green"><div class="val">${online}</div><div class="lbl">Online</div></div>
   <div class="stat blue"><div class="val">${roomList.length}</div><div class="lbl">Aktiv otaq</div></div>
@@ -556,33 +602,86 @@ footer{margin-top:24px;font-size:.7rem;color:#484f58;text-align:center}
   <div class="stat"><div class="val">${serverStats.totalRooms}</div><div class="lbl">Cəmi otaq</div></div>
   <div class="stat red"><div class="val">${memMB} MB</div><div class="lbl">RAM</div></div>
 </div>
-
 <div class="section-title">🏠 Aktiv otaqlar</div>
 ${roomsHtml}
-
 ${freeConns ? `<div class="section-title">🔌 Otaqsız qoşulmalar</div>
 <table class="free-table">
   <thead><tr><th>Socket ID</th><th>Cihaz</th><th>Qoşulma vaxtı</th></tr></thead>
   <tbody>${freeConns}</tbody>
 </table>` : ''}
-
-<footer>CizTap Admin Panel · Yalnız sizin üçün</footer>
+<footer>CizTap Admin Panel</footer>
 </body></html>`;
+  res.setHeader('Content-Type','text/html; charset=utf-8');
+  res.send(html);
+});
 
-  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+// ── Admin: kick oyunçu ────────────────────────────────────────────────────────
+app.get('/admin/kick', function(req, res) {
+  if (!adminCheck(req, res)) return;
+  const targetId = String(req.query.id || '');
+  const code     = String(req.query.code || '');
+  const r = rooms[code];
+  if (!r) return res.redirect('/admin?key=' + ADMIN_KEY + '&msg=otaq+tapilmadi');
+  const target = r.players.find(p => p.id === targetId);
+  if (!target || target.isHost) return res.redirect('/admin?key=' + ADMIN_KEY + '&msg=tapilmadi');
+  r.players = r.players.filter(p => p.id !== targetId);
+  const ts = io.sockets.sockets.get(targetId);
+  if (ts) { ts.emit('kicked'); ts.leave(code); ts.data.code = null; }
+  io.to(code).emit('playerUpdate', { players: r.players, msg: target.name + ' admin tərəfindən çıxarıldı.' });
+  addLog('🦵', `Admin ${target.name}-i #${code} otağından çıxardı`);
+  if (r.started && r.players.length < 2) {
+    safeTimer(r); r.started = false; r.paused = true;
+    io.to(code).emit('gamePaused');
+  }
+  res.redirect('/admin?key=' + ADMIN_KEY);
+});
+
+// ── Admin: otağı bağla ────────────────────────────────────────────────────────
+app.get('/admin/closeroom', function(req, res) {
+  if (!adminCheck(req, res)) return;
+  const code = String(req.query.code || '');
+  const r = rooms[code];
+  if (!r) return res.redirect('/admin?key=' + ADMIN_KEY);
+  safeTimer(r);
+  io.to(code).emit('err', 'Otaq admin tərəfindən bağlandı.');
+  io.to(code).emit('leftRoom');
+  addLog('🚪', `Admin #${code} otağını bağladı (${r.players.map(p=>p.name).join(', ')})`);
+  delete rooms[code];
+  res.redirect('/admin?key=' + ADMIN_KEY);
+});
+
+// ── Admin: fəaliyyət logu ─────────────────────────────────────────────────────
+app.get('/admin/logs', function(req, res) {
+  if (!adminCheck(req, res)) return;
+  const K = '?key=' + ADMIN_KEY;
+  const rows = actLog.slice().reverse().map(e =>
+    `<div class="log-row"><span class="log-ts">${e.ts}</span><span>${e.emoji}</span><span class="log-msg">${e.msg}</span></div>`
+  ).join('') || '<div class="empty">Log yoxdur.</div>';
+
+  const html = `<!DOCTYPE html><html lang="az"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CizTap Logs</title><meta http-equiv="refresh" content="10">
+<style>${ADMIN_CSS}</style></head><body>
+<h1>📋 Fəaliyyət Logu</h1>
+<nav><a href="/admin${K}">📊 Dashboard</a> <a href="/admin/logs${K}">📋 Log</a></nav>
+<div class="refresh">Son ${actLog.length} hadisə · hər 10s yenilənir · restart olduqda sıfırlanır</div>
+${rows}
+<footer>CizTap Admin · Log</footer>
+</body></html>`;
+  res.setHeader('Content-Type','text/html; charset=utf-8');
   res.send(html);
 });
 
 io.on('connection', function(socket) {
   serverStats.totalConns++;
-  const ip = (socket.handshake.headers['x-forwarded-for'] || socket.handshake.address || '').split(',')[0].trim();
   const ua = socket.handshake.headers['user-agent'] || '';
+  // IP saxlanmır — yalnız cihaz məlumatı
   connMeta.set(socket.id, {
-    ip:          ip || 'Naməlum',
     device:      parseUA(ua),
     connectedAt: Date.now(),
     code:        null,
   });
+  addLog('🟢', `Yeni qoşulma · ${parseUA(ua)}`);
 
   socket.on('createRoom', function(d) {
     if (!rateOk(socket.id, 5, 30000)) return socket.emit('err', 'Çox tez cəhd.');
@@ -607,6 +706,7 @@ io.on('connection', function(socket) {
     socket.join(code); socket.data.code = code;
     const m = connMeta.get(socket.id); if (m) m.code = code;
     serverStats.totalRooms++;
+    addLog('🏠', `${name} #${code} otağını yaratdı (${rooms[code].maxRounds} raund, ${rooms[code].drawTime}s)`);
     socket.emit('roomReady', { code, isHost: true, players: rooms[code].players,
       settings: { rounds, drawTime, category, difficulty, customWords } });
   });
@@ -626,6 +726,7 @@ io.on('connection', function(socket) {
     r.players.push(p);
     socket.join(code); socket.data.code = code;
     const mj = connMeta.get(socket.id); if (mj) mj.code = code;
+    addLog('👋', `${name} #${code} otağına qoşuldu`);
     socket.emit('roomReady', { code, isHost: false, players: r.players,
       settings: { rounds: r.maxRounds, drawTime: r.drawTime, category: r.category, difficulty: r.difficulty, customWords: r.customWords } });
     socket.to(code).emit('playerUpdate', { players: r.players, msg: name + ' qoşuldu! 👋' });
@@ -784,6 +885,8 @@ io.on('connection', function(socket) {
   });
 
   socket.on('disconnect', function() {
+    const meta = connMeta.get(socket.id);
+    if (meta && meta.code) addLog('🔴', `Oyunçu ayrıldı · ${meta.device||'?'}`);
     connMeta.delete(socket.id);
     for (const key of sockRate.keys()) {
       if (key.startsWith(socket.id + ':')) sockRate.delete(key);
