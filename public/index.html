@@ -6,6 +6,7 @@
 <title>CizTap</title>
 <!-- Socket.IO served locally from node_modules — no CDN needed -->
 <script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 /* ── Google Fonts inline subset (avoids 404 on restricted networks) ── */
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Baloo+2:wght@700;800&display=swap');
@@ -493,8 +494,39 @@ body.light .cover{background:rgba(240,244,248,.93)}
   padding:3px 7px;cursor:pointer;transition:all .2s;display:none}
 .dl-btn:hover{background:var(--blue);border-color:var(--blue)}
 .cwrap:hover .dl-btn{display:block}
+/* ── Friends panel (home screen) ── */
+.friends-wrap{background:var(--card);border:1px solid var(--border);border-radius:17px;
+  padding:16px;width:100%;max-width:430px}
+.friends-hd{font-size:.8rem;font-weight:800;color:var(--sub);text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.friend-add-row{display:flex;gap:6px;margin-bottom:10px}
+.friend-add-inp{flex:1;background:var(--card2);border:1.5px solid var(--border);border-radius:8px;
+  padding:7px 10px;color:var(--text);font-size:.83rem;font-weight:600}
+.friend-add-inp:focus{border-color:var(--blue);outline:none}
+.friend-add-btn{padding:7px 12px;border-radius:8px;background:var(--blue);color:#fff;
+  font-size:.8rem;font-weight:800;white-space:nowrap}
+.friend-list{display:flex;flex-direction:column;gap:5px;max-height:160px;overflow-y:auto}
+.friend-row{display:flex;align-items:center;gap:7px;background:var(--card2);
+  border:1px solid var(--border);border-radius:8px;padding:6px 9px}
+.friend-name{flex:1;font-size:.83rem;font-weight:700}
+.friend-find-btn{padding:4px 9px;border-radius:6px;background:rgba(0,145,194,.15);
+  border:1px solid rgba(0,145,194,.35);color:var(--blue);font-size:.74rem;font-weight:700}
+.friend-find-btn:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+.friend-del-btn{padding:4px 7px;border-radius:6px;background:rgba(239,51,64,.1);
+  border:1px solid rgba(239,51,64,.25);color:var(--red);font-size:.74rem;font-weight:700}
+.friend-del-btn:hover{background:var(--red);color:#fff}
+.friend-empty{color:var(--sub);font-size:.8rem;font-style:italic;text-align:center;padding:8px}
+/* ── Lobby settings edit (host) ── */
+.lsettings-edit{background:var(--card2);border:1px solid var(--border);border-radius:10px;
+  padding:12px;margin-bottom:12px;display:none}
+.lsettings-edit.show{display:block}
+.lse-title{font-size:.74rem;font-weight:700;color:var(--sub);text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:8px}
+.lse-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.lse-sel{background:var(--card);border:1.5px solid var(--border);border-radius:7px;
+  padding:5px 8px;color:var(--text);font-size:.8rem;font-weight:600;width:100%}
+.lse-sel:focus{border-color:var(--blue);outline:none}
 </style>
-</head>
 <body>
 
 <div class="top-btns">
@@ -580,6 +612,18 @@ body.light .cover{background:rgba(240,244,248,.93)}
     </div>
     <div id="homeErr" class="err"></div>
   </div>
+
+  <!-- Friends panel -->
+  <div class="friends-wrap">
+    <div class="friends-hd">👥 Dostlarım</div>
+    <div class="friend-add-row">
+      <input id="friendInp" class="friend-add-inp" placeholder="Dost adı..." maxlength="16"
+        autocomplete="off" autocapitalize="off"
+        onkeydown="if(event.key==='Enter')addFriend()">
+      <button class="friend-add-btn" onclick="addFriend()">+ Əlavə et</button>
+    </div>
+    <div class="friend-list" id="friendList"></div>
+  </div>
 </div>
 
 <!-- ══ LOBBY ══ -->
@@ -594,6 +638,45 @@ body.light .cover{background:rgba(240,244,248,.93)}
       <button class="copy-btn" onclick="copyCode()">Kopyala</button>
     </div>
     <div id="pgrid" class="pgrid"></div>
+    <!-- Host-only settings editor -->
+    <div class="lsettings-edit" id="lSettingsEdit">
+      <div class="lse-title">⚙️ Parametrlər (yalnız ev sahibi)</div>
+      <div class="lse-grid">
+        <div class="ig"><label class="lbl" style="font-size:.68rem">Raund</label>
+          <select id="lseRounds" class="lse-sel" onchange="sendSettingsUpdate()">
+            <option value="2">2</option><option value="3">3</option>
+            <option value="4">4</option><option value="5">5</option>
+            <option value="7">7</option><option value="10">10</option>
+          </select></div>
+        <div class="ig"><label class="lbl" style="font-size:.68rem">Vaxt</label>
+          <select id="lseTime" class="lse-sel" onchange="sendSettingsUpdate()">
+            <option value="60">60s</option><option value="80">80s</option>
+            <option value="100">100s</option><option value="120">120s</option>
+          </select></div>
+        <div class="ig"><label class="lbl" style="font-size:.68rem">Kateqoriya</label>
+          <select id="lseCat" class="lse-sel" onchange="sendSettingsUpdate()">
+            <option value="Hamısı">Hamısı</option>
+            <option value="Heyvanlar">🐾 Heyvanlar</option>
+            <option value="Meyvə və tərəvəz">🍎 Meyvə & Tərəvəz</option>
+            <option value="Ev əşyaları">🏠 Ev Əşyaları</option>
+            <option value="Yemək və içki">🍕 Yemək & İçki</option>
+            <option value="Nəqliyyat">🚗 Nəqliyyat</option>
+            <option value="Geyim">👕 Geyim</option>
+            <option value="Təbiət">🌿 Təbiət</option>
+            <option value="İdman">⚽ İdman</option>
+            <option value="Yer və bina">🏢 Yer & Bina</option>
+            <option value="Əşya və alət">🎒 Əşya & Alət</option>
+            <option value="Azərbaycan">🇦🇿 Azərbaycan</option>
+          </select></div>
+        <div class="ig"><label class="lbl" style="font-size:.68rem">Çətinlik</label>
+          <select id="lseDiff" class="lse-sel" onchange="sendSettingsUpdate()">
+            <option value="all">Hamısı</option>
+            <option value="easy">😊 Asan</option>
+            <option value="medium">😐 Orta</option>
+            <option value="hard">😤 Çətin</option>
+          </select></div>
+      </div>
+    </div>
     <div class="lpills">
       <div class="pill">🔄 <span id="lRounds">3</span></div>
       <div class="pill">⏱ <span id="lTime">80</span>s</div>
@@ -708,6 +791,7 @@ body.light .cover{background:rgba(240,244,248,.93)}
     <div id="goStats"></div>
     <div class="go-btns">
       <button class="btn btn-gray" style="flex:1" onclick="goHome()">Ana Səhifə</button>
+      <button class="btn btn-b" style="flex:1" onclick="downloadDrawingsPDF()">📄 PDF Arxiv</button>
       <button id="goAgain" class="btn btn-g" style="display:none;flex:1" onclick="emitPlayAgain()">Yenidən 🎮</button>
     </div>
   </div>
@@ -892,6 +976,7 @@ window.addEventListener('load',function(){
   window.addEventListener('resize', scaleCwrap);
 
   connectSocket();
+  renderFriends();
 });
 
 // ══════════════════════════════════════════════════════════
@@ -1252,11 +1337,8 @@ function connectSocket(){
 
   sk.on('gamePaused',function(data){
     const awaiting=(data&&data.awaitingName)?data.awaitingName:null;
-    const msg=awaiting
-      ? '⏸ Oyun dayandı\n"'+awaiting+'" qayıdana qədər gözlənilir'
-      : '⏸ Oyun dayandı';
+    const msg=awaiting?'⏸ Oyun dayandı\n"'+awaiting+'" qayıdana qədər gözlənilir':'⏸ Oyun dayandı';
     showCover(msg, awaiting?'Yalnız o qoşula bilər':'Yeni oyunçu gözlənilir...');
-    // Host sees "Continue Game" button on cover
     if(S.isHost){
       const ov=document.getElementById('cover');
       const btn=document.createElement('button');
@@ -1268,20 +1350,34 @@ function connectSocket(){
     toast('Oyunçu sayı azaldı.','bad');
   });
 
-  // Play-again lobby with 30s auto-start
   sk.on('playAgainLobby',function(data){
     S.players=data.players;
     goScreen('lobbyScreen');
     showLobby(data.settings);
     startAutoStartUI(data.timeLeft);
   });
+  sk.on('autoStartTick',function(data){ updateAutoStartUI(data.t); });
+  sk.on('autoStartStopped',function(){ stopAutoStartUI(); });
 
-  sk.on('autoStartTick',function(data){
-    updateAutoStartUI(data.t);
+  sk.on('settingsUpdated',function(data){
+    S.maxRounds=data.rounds; S.drawTime=data.drawTime;
+    document.getElementById('lRounds').textContent=data.rounds;
+    document.getElementById('lTime').textContent=data.drawTime;
+    document.getElementById('lCat').textContent=data.category||'Hamısı';
+    document.getElementById('lDiff').textContent=DIFF_LABELS[data.difficulty]||'Hamısı';
+    if(!S.isHost) toast('Parametrlər dəyişdi','info');
   });
 
-  sk.on('autoStartStopped',function(){
-    stopAutoStartUI();
+  sk.on('friendResult',function(data){
+    if(data.found){
+      switchTab('j');
+      const savedName=localStorage.getItem('ct_name')||'';
+      if(savedName) document.getElementById('jName').value=savedName;
+      document.getElementById('jCode').value=data.code;
+      toast('🟢 '+data.name+' #'+data.code+' otağında! Qoşulun →','ok');
+    } else {
+      toast((data.name||'Dost')+' heç bir açıq otaqda deyil','bad');
+    }
   });
 }
 
@@ -1318,7 +1414,18 @@ function showLobby(settings){
   document.getElementById('lTime').textContent=settings.drawTime;
   document.getElementById('lCat').textContent=settings.category||'Hamısı';
   document.getElementById('lDiff').textContent=DIFF_LABELS[settings.difficulty]||'Hamısı';
-  // Reset autostart bar
+  // Settings edit panel — only for host, only before game starts
+  const editPanel=document.getElementById('lSettingsEdit');
+  if(editPanel){
+    editPanel.classList.toggle('show', !!S.isHost);
+    if(S.isHost){
+      const setVal=(id,v)=>{const el=document.getElementById(id);if(el)el.value=String(v);};
+      setVal('lseRounds', settings.rounds);
+      setVal('lseTime',   settings.drawTime);
+      setVal('lseCat',    settings.category||'Hamısı');
+      setVal('lseDiff',   settings.difficulty||'all');
+    }
+  }
   const bar=document.getElementById('autostartBar');
   if(bar) bar.classList.remove('show');
   document.getElementById('lwait').style.display='';
@@ -1649,6 +1756,98 @@ function kickPlayer(id){if(!confirm('Bu oyunçunu çıxarmaq istəyirsiniz?'))re
 function copyCode(){navigator.clipboard.writeText(S.code).then(()=>toast('Kod kopyalandı: '+S.code,'ok')).catch(()=>toast('Kod: '+S.code,'info'));}
 function goHome(){location.reload();}
 function chooseWord(w){S.socket.emit('wordChosen',{word:w});}
+
+// ── Settings update (lobby, host only) ──────────────────────────────────────
+function sendSettingsUpdate(){
+  if(!S.isHost||!S.socket) return;
+  S.socket.emit('updateSettings',{
+    rounds:   document.getElementById('lseRounds').value,
+    drawTime: document.getElementById('lseTime').value,
+    category: document.getElementById('lseCat').value,
+    difficulty:document.getElementById('lseDiff').value,
+  });
+}
+
+// ── PDF arxiv ────────────────────────────────────────────────────────────────
+function downloadDrawingsPDF(){
+  if(!S.drawings||!S.drawings.length){toast('Heç bir çəkiliş yoxdur','bad');return;}
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const PW=210,PH=297,PAD=14,COLS=2;
+    const cellW=(PW-PAD*2-10)/COLS, cellH=cellW*0.75+14;
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(18);
+    doc.setTextColor(30,30,30);
+    doc.text('CizTap — Çəkiliş Arxivi',PW/2,20,{align:'center'});
+    doc.setFontSize(9);doc.setTextColor(120,120,120);
+    doc.text(new Date().toLocaleDateString('az-AZ'),PW/2,27,{align:'center'});
+    let x=PAD,y=36,count=0;
+    S.drawings.forEach(function(dr,i){
+      if(y+cellH>PH-PAD){doc.addPage();x=PAD;y=PAD;}
+      // Card background
+      doc.setFillColor(245,247,250);
+      doc.roundedRect(x,y,cellW,cellH,3,3,'F');
+      doc.setDrawColor(200,210,220);
+      doc.roundedRect(x,y,cellW,cellH,3,3,'S');
+      // Image
+      try{doc.addImage(dr.dataUrl,'PNG',x+2,y+2,cellW-4,cellW*0.75-2);}catch(e){}
+      // Caption
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(30,30,30);
+      doc.text(dr.word,x+cellW/2,y+cellW*0.75+6,{align:'center',maxWidth:cellW-4});
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(120,120,120);
+      doc.text('✏️ '+dr.drawerName,x+cellW/2,y+cellW*0.75+11,{align:'center',maxWidth:cellW-4});
+      count++;
+      x+=cellW+10;
+      if(count%COLS===0){x=PAD;y+=cellH+8;}
+    });
+    doc.save('ciztap-arxiv.pdf');
+    toast('PDF yükləndi ✓','ok');
+  }catch(e){
+    toast('PDF xətası: '+e.message,'bad');
+    console.error(e);
+  }
+}
+
+// ── Friends (localStorage) ───────────────────────────────────────────────────
+function loadFriends(){return JSON.parse(localStorage.getItem('ct_friends')||'[]');}
+function saveFriends(f){localStorage.setItem('ct_friends',JSON.stringify(f));}
+function renderFriends(){
+  const list=document.getElementById('friendList');
+  if(!list) return;
+  const friends=loadFriends();
+  if(!friends.length){list.innerHTML='<div class="friend-empty">Hələ dost əlavə etmədiniz.</div>';return;}
+  list.innerHTML='';
+  friends.forEach(function(name){
+    const row=document.createElement('div');row.className='friend-row';
+    row.innerHTML='<span class="friend-name">'+esc(name)+'</span>'
+      +'<button class="friend-find-btn" onclick="findFriend(\''+esc(name)+'\')">🔍 Tap</button>'
+      +'<button class="friend-del-btn" onclick="deleteFriend(\''+esc(name)+'\')">✕</button>';
+    list.appendChild(row);
+  });
+}
+function addFriend(){
+  const inp=document.getElementById('friendInp');
+  const name=(inp.value||'').trim();
+  if(!name){toast('Ad daxil edin','bad');return;}
+  const friends=loadFriends();
+  if(friends.some(f=>f.toLowerCase()===name.toLowerCase())){toast('Artıq əlavə edilib','bad');inp.value='';return;}
+  if(friends.length>=30){toast('Maks 30 dost','bad');return;}
+  friends.push(name);
+  saveFriends(friends);
+  inp.value='';
+  renderFriends();
+  toast(name+' dostlar siyahısına əlavə edildi ✓','ok');
+}
+function deleteFriend(name){
+  const friends=loadFriends().filter(f=>f!==name);
+  saveFriends(friends);
+  renderFriends();
+}
+function findFriend(name){
+  if(!S.socket){toast('Serverə qoşulmamısınız','bad');return;}
+  S.socket.emit('findFriend',{name});
+}
 
 function toast(msg,type){
   if(!msg) return;
