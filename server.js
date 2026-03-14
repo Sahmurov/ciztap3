@@ -415,8 +415,7 @@ const connMeta = new Map();
 // Activity log: son 500 event RAM-da saxlanır
 const actLog = [];
 function addLog(emoji, msg) {
-  const now = new Date();
-  const ts  = now.toLocaleString('az-AZ', { dateStyle:'short', timeStyle:'medium' });
+  const ts = new Date().toLocaleString('az-AZ', { dateStyle:'short', timeStyle:'medium', timeZone:'Asia/Baku' });
   actLog.push({ ts, emoji, msg });
   if (actLog.length > 500) actLog.shift();
 }
@@ -447,7 +446,7 @@ function fmtUptime(ms) {
   return m+'d '+(s%60)+'s';
 }
 function fmtTime(ts) {
-  return new Date(ts).toLocaleTimeString('az-AZ',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  return new Date(ts).toLocaleTimeString('az-AZ',{hour:'2-digit',minute:'2-digit',second:'2-digit',timeZone:'Asia/Baku'});
 }
 function adminCheck(req, res) {
   if (req.query.key !== ADMIN_KEY) { res.status(403).send('<h2>403</h2>'); return false; }
@@ -945,6 +944,31 @@ io.on('connection', function(socket) {
     r.awaitingPlayer = null; r.paused = false; r.started = true;
     io.to(r.code).emit('gameStarted');
     setTimeout(() => startTurn(r.code), 800);
+  });
+
+  socket.on('updateSettings', function(d) {
+    const r = rooms[socket.data && socket.data.code];
+    if (!r || r.started) return;
+    const me = r.players.find(p => p.id === socket.id);
+    if (!me || !me.isHost) return;
+    if (d.rounds)    r.maxRounds  = Math.min(Math.max(parseInt(d.rounds)||3,1),10);
+    if (d.drawTime)  r.drawTime   = Math.min(Math.max(parseInt(d.drawTime)||80,30),180);
+    if (d.category && (WORDS[d.category] || d.category==='Hamısı')) r.category = d.category;
+    if (['easy','medium','hard','all'].includes(d.difficulty)) r.difficulty = d.difficulty;
+    io.to(r.code).emit('settingsUpdated', {
+      rounds: r.maxRounds, drawTime: r.drawTime, category: r.category, difficulty: r.difficulty,
+    });
+  });
+
+  socket.on('findFriend', function(d) {
+    const name = String((d && d.name) || '').trim().toLowerCase();
+    if (!name) return socket.emit('friendResult', { found: false });
+    for (const r of Object.values(rooms)) {
+      if (r.started) continue; // don't reveal active games
+      const p = r.players.find(p => p.name.toLowerCase() === name);
+      if (p) return socket.emit('friendResult', { found: true, code: r.code, name: p.name });
+    }
+    socket.emit('friendResult', { found: false, name });
   });
 
   socket.on('disconnect', function() {
