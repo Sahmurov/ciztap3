@@ -516,7 +516,19 @@ body.light .cover{background:rgba(240,244,248,.93)}
   border:1px solid rgba(239,51,64,.25);color:var(--red);font-size:.74rem;font-weight:700}
 .friend-del-btn:hover{background:var(--red);color:#fff}
 .friend-empty{color:var(--sub);font-size:.8rem;font-style:italic;text-align:center;padding:8px}
-/* ── Lobby settings edit (host) ── */
+/* ── Level badge ── */
+.lvl-badge{display:inline-flex;align-items:center;gap:2px;line-height:1.3;vertical-align:middle;flex-shrink:0}
+@keyframes lvlUpPop{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0.5)}
+  60%{transform:translate(-50%,-50%) scale(1.08)}
+  100%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+}
+@keyframes rainbowAnim{
+  0%{filter:hue-rotate(0deg)}100%{filter:hue-rotate(360deg)}
+}
+/* ── Home level display ── */
+#homeLvlBadge{margin-top:6px;display:flex;flex-direction:column;gap:3px;align-items:center}
+</style>
 .lsettings-edit{background:var(--card2);border:1px solid var(--border);border-radius:10px;
   padding:12px;margin-bottom:12px;display:none}
 .lsettings-edit.show{display:block}
@@ -547,6 +559,7 @@ body.light .cover{background:rgba(240,244,248,.93)}
   <div class="av-section">
     <label class="lbl">Avatarınızı seçin</label>
     <div class="av-row" id="avRow"></div>
+    <div id="homeLvlBadge"></div>
   </div>
   <div class="home-card">
     <div class="tabs">
@@ -822,6 +835,101 @@ const COLORS = ['#111111','#ffffff','#ef3340','#ff6600','#f5c842','#00a651',
 const SHAPE_TOOLS = ['line','rect','frect','circ','fcirc'];
 const DIFF_LABELS = {all:'Hamısı',easy:'😊 Asan',medium:'😐 Orta',hard:'😤 Çətin'};
 
+// ══════════════════════════════════════════════════════════
+//  LEVEL / XP SYSTEM
+//  75% vaxtdan, 25% xaldan
+//  Max level 100 | ~56 saat oyunla çatan
+// ══════════════════════════════════════════════════════════
+const XP_TICK_MS   = 2000;   // hər 2 saniyə 1 XP (oyun ekranında)
+const SCORE_XP_MUL = 2;      // hər xal balı = 2 XP
+function xpForLevel(n){ return 100 + n * 20; } // level n üçün lazım olan XP
+// toplam XP hesabı
+function totalXpForLevel(n){let t=0;for(let i=1;i<=n;i++)t+=xpForLevel(i);return t;}
+
+const LEVEL_TIERS=[
+  {min:0,  max:0,  name:'Başlanğıc', badge:'',   color:'#8b949e', glow:null,              bg:'transparent'},
+  {min:1,  max:5,  name:'Bürünc',    badge:'🥉', color:'#cd7f32', glow:'rgba(205,127,50,.35)', bg:'rgba(205,127,50,.1)'},
+  {min:6,  max:10, name:'Gümüş',     badge:'⚪', color:'#b0b8c1', glow:'rgba(176,184,193,.35)',bg:'rgba(176,184,193,.1)'},
+  {min:11, max:20, name:'Qızıl',     badge:'🌟', color:'#ffd700', glow:'rgba(255,215,0,.4)',   bg:'rgba(255,215,0,.1)'},
+  {min:21, max:30, name:'Almaz',     badge:'💎', color:'#00d4ff', glow:'rgba(0,212,255,.4)',   bg:'rgba(0,212,255,.1)'},
+  {min:31, max:40, name:'Kristal',   badge:'🔮', color:'#c084fc', glow:'rgba(192,132,252,.4)', bg:'rgba(192,132,252,.1)'},
+  {min:41, max:50, name:'Ulduz',     badge:'⭐', color:'#ff9500', glow:'rgba(255,149,0,.4)',   bg:'rgba(255,149,0,.1)'},
+  {min:51, max:60, name:'Alov',      badge:'🔥', color:'#ff4500', glow:'rgba(255,69,0,.5)',    bg:'rgba(255,69,0,.12)'},
+  {min:61, max:70, name:'İldırım',   badge:'⚡', color:'#ffe500', glow:'rgba(255,229,0,.4)',   bg:'rgba(255,229,0,.1)'},
+  {min:71, max:80, name:'Dalğa',     badge:'🌊', color:'#00bcd4', glow:'rgba(0,188,212,.4)',   bg:'rgba(0,188,212,.1)'},
+  {min:81, max:90, name:'Tac',       badge:'👑', color:'#ff69b4', glow:'rgba(255,105,180,.5)', bg:'rgba(255,105,180,.12)'},
+  {min:91, max:99, name:'Əfsanə',    badge:'💀', color:'#ef4444', glow:'rgba(239,68,68,.5)',   bg:'rgba(239,68,68,.12)'},
+  {min:100,max:100,name:'Legend',    badge:'🌈', color:'rainbow',  glow:'rgba(255,255,255,.6)', bg:'rgba(255,255,255,.08)'},
+];
+function getTier(lvl){
+  for(let i=LEVEL_TIERS.length-1;i>=0;i--){
+    if(lvl>=LEVEL_TIERS[i].min && lvl<=LEVEL_TIERS[i].max) return LEVEL_TIERS[i];
+  }
+  return LEVEL_TIERS[0];
+}
+// localStorage'dan XP/level oxu
+function loadXP(){
+  const xp=parseInt(localStorage.getItem('ct_xp')||'0')||0;
+  let lvl=0, rem=xp;
+  while(lvl<100){const need=xpForLevel(lvl+1);if(rem<need)break;rem-=need;lvl++;}
+  return {xp,lvl,rem,need:xpForLevel(lvl+1)};
+}
+function addXP(amount){
+  if(amount<=0) return;
+  const prev=loadXP();
+  const newXP=prev.xp+amount;
+  localStorage.setItem('ct_xp',String(newXP));
+  const next=loadXP();
+  if(next.lvl>prev.lvl){
+    S.myLevel=next.lvl;
+    showLevelUp(next.lvl);
+    updateHomeLevel();
+  }
+  S.myLevel=next.lvl;
+}
+// Level badge HTML — compact (for player cards, lobby etc.)
+function lvlBadge(lvl, showName){
+  if(!lvl&&lvl!==0) lvl=0;
+  const t=getTier(lvl);
+  const isRainbow=(t.color==='rainbow');
+  const col=isRainbow?'#fff':t.color;
+  const style=`background:${t.bg};border:1px solid ${isRainbow?'rgba(255,255,255,.3)':col+'55'};`
+    +`color:${col};border-radius:20px;padding:1px 5px;font-size:.63rem;font-weight:800;`
+    +`white-space:nowrap;${isRainbow?'background:linear-gradient(90deg,#ff6b6b,#ffd93d,#6bcb77,#4d96ff,#ff6bff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;':''}`
+  ;
+  const label=showName?`${t.badge} ${lvl} ${t.name}`:`${t.badge}${lvl}`;
+  return `<span class="lvl-badge" style="${style}" title="${t.name} — Lv.${lvl}">${label}</span>`;
+}
+// Level progress bar HTML
+function lvlProgressHtml(xpData){
+  const t=getTier(xpData.lvl);
+  const pct=xpData.lvl>=100?100:Math.round(xpData.rem/xpData.need*100);
+  const col=t.color==='rainbow'?'#ff69b4':t.color;
+  return `<div style="font-size:.7rem;color:var(--sub);margin-bottom:2px">${t.badge} Lv.${xpData.lvl} · ${xpData.rem}/${xpData.lvl>=100?'MAX':xpData.need} XP</div>`
+    +`<div style="height:5px;background:var(--border);border-radius:99px;overflow:hidden">`
+    +`<div style="width:${pct}%;height:100%;background:${col};border-radius:99px;transition:width .5s"></div></div>`;
+}
+function showLevelUp(newLvl){
+  const t=getTier(newLvl);
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);'
+    +'background:var(--card);border:2px solid '+( t.color==='rainbow'?'#ffd700':t.color)+';border-radius:18px;'
+    +'padding:24px 32px;z-index:9999;text-align:center;animation:lvlUpPop .5s cubic-bezier(.34,1.56,.64,1) forwards;'
+    +'box-shadow:0 8px 40px '+(t.glow||'rgba(0,0,0,.5)');
+  el.innerHTML='<div style="font-size:2.5rem">'+t.badge+'</div>'
+    +'<div style="font-family:\'Baloo 2\',cursive;font-size:1.6rem;font-weight:800;color:'+( t.color==='rainbow'?'#ffd700':t.color)+'">Lv.'+newLvl+'</div>'
+    +'<div style="font-size:.9rem;font-weight:700;color:var(--sub)">'+t.name+' rütbəsi!</div>';
+  document.body.appendChild(el);
+  tone(659,'sine',.15,.3);setTimeout(()=>tone(784,'sine',.15,.3),150);setTimeout(()=>tone(1046,'sine',.3,.3),300);
+  setTimeout(()=>{el.style.animation='lvlUpPop .3s ease reverse forwards';setTimeout(()=>el.remove(),350);},2800);
+}
+function updateHomeLevel(){
+  const el=document.getElementById('homeLvlBadge');
+  if(!el) return;
+  const d=loadXP();
+  el.innerHTML=lvlBadge(d.lvl,true)+' <span style="font-size:.68rem;color:var(--sub)">'+lvlProgressHtml(d)+'</span>';
+}
+
 // PC uses landscape 4:3, mobile uses all available space
 
 
@@ -839,8 +947,10 @@ const S={
   pctx:null, pcanvas:null,
   undoStack:[], maxUndo:12,
   soundOn:true,
-  currentDrawerId:null,   // for border color
-  drawings:[],            // [{word, drawer, dataUrl}] for best-drawing gallery
+  currentDrawerId:null,
+  drawings:[],
+  myLevel:0,          // cari level
+  xpTicker:null,      // setInterval handle
 };
 
 // ══════════════════════════════════════════════════════════
@@ -930,6 +1040,10 @@ window.addEventListener('load',function(){
     document.getElementById('jName').value=savedName;
   }
   S.myAvatar=Math.min(savedAvatar,AVATARS.length-1);
+  // Load XP/level
+  const xpData=loadXP();
+  S.myLevel=xpData.lvl;
+  updateHomeLevel();
 
   // Avatars
   const avRow=document.getElementById('avRow');
@@ -1214,7 +1328,11 @@ function connectSocket(){
     toast('Siz otaqdan çıxarıldınız.','bad');
     S.code='';S.players=[];S.isHost=false;goScreen('homeScreen');
   });
-  sk.on('leftRoom',function(){goScreen('homeScreen');});
+  sk.on('leftRoom',function(){
+    if(S.xpTicker){clearInterval(S.xpTicker);S.xpTicker=null;}
+    goScreen('homeScreen');
+    updateHomeLevel();
+  });
 
   sk.on('gameStarted',function(){
     goScreen('gameScreen');
@@ -1224,6 +1342,9 @@ function connectSocket(){
     fillWhite();
     requestAnimationFrame(scaleCwrap);
     sysMsg('Oyun başladı! 🎮'); sndStart();
+    // XP time ticker — hər 2 saniyə 1 XP
+    if(S.xpTicker) clearInterval(S.xpTicker);
+    S.xpTicker=setInterval(function(){addXP(1);},XP_TICK_MS);
   });
 
   sk.on('waitingWord',function(data){
@@ -1333,7 +1454,13 @@ function connectSocket(){
     renderGamePlayers(); showRevealModal(data.word,data.scores); sysMsg('Cavab: '+data.word);
   });
 
-  sk.on('gameOver',function(data){setTimeout(()=>showGameOver(data.scores,data.winner,data.winnerAvatar),5600);});
+  sk.on('gameOver',function(data){
+    if(S.xpTicker){clearInterval(S.xpTicker);S.xpTicker=null;}
+    // Score XP — öz xalının 25% hissəsi score XP kimi verilir
+    const me=data.scores.find(s=>s.name===S.myName);
+    if(me&&me.score>0) addXP(Math.round(me.score*SCORE_XP_MUL));
+    setTimeout(()=>showGameOver(data.scores,data.winner,data.winnerAvatar),5600);
+  });
 
   sk.on('gamePaused',function(data){
     const awaiting=(data&&data.awaitingName)?data.awaitingName:null;
@@ -1443,7 +1570,7 @@ function renderLobbyPlayers(){
       div.className='pslot filled'+(p.isHost?' hst':'');
       div.innerHTML='<div class="pslot-av" style="background:'+av.bg+';color:'+av.c+'">'+av.e+'</div>'+
         '<div class="pslot-name">'+esc(p.name)+(p.id===S.myId?' (siz)':'')+'</div>'+
-        '<div class="pslot-tag">'+(p.isHost?'👑':'🎮')+'</div>';
+        '<div class="pslot-tag">'+(p.isHost?'👑':'🎮')+(p.level?'  '+lvlBadge(p.level):'')+'</div>';
       if(S.isHost&&!p.isHost){
         const kb=document.createElement('button');kb.className='kick-btn';kb.textContent='✕';
         kb.onclick=()=>kickPlayer(p.id);div.appendChild(kb);
@@ -1481,7 +1608,7 @@ function renderGamePlayers(drawerId){
     div.className='pcard'+(isDrawing?' drawing':'')+(isMe?' isme':'');
     div.innerHTML='<div class="pcard-row">'+rankHtml+
       '<div class="pc-av" style="background:'+av.bg+';color:'+av.c+'">'+av.e+'</div>'+
-      '<div class="pc-info"><div class="pc-name">'+esc(p.name)+(isMe?' ★':'')+'</div>'+
+      '<div class="pc-info"><div class="pc-name">'+esc(p.name)+(isMe?' ★':'')+' '+(p.level?lvlBadge(p.level):'')+'</div>'+
       '<div class="pc-st">'+(isDrawing?'✏️':'')+'</div></div>'+
       '<div class="pc-score">'+p.score+'</div></div>';
     if(S.isHost&&!p.isHost&&!isMe){
@@ -1627,7 +1754,8 @@ function showGameOver(scores,winner,winnerAv){
     bdSection.className='bd-section';
     bdSection.innerHTML='<div class="bd-title">🎨 Ən yaxşı çəkiliş — səs ver!</div><div class="bd-grid" id="bdGrid"></div>';
     sg.after(bdSection);
-    let votedIdx=null;
+    // Shared votes — hər kart üçün votes sayı hamıya görünür
+    let myVotedIdx=null;
     const grid=bdSection.querySelector('#bdGrid');
     S.drawings.forEach(function(dr,i){
       const card=document.createElement('div');
@@ -1639,18 +1767,42 @@ function showGameOver(scores,winner,winnerAv){
         +'<div class="bd-votes" id="bdv'+i+'">👍 '+dr.votes+'</div>'
         +'</div>';
       card.onclick=function(){
-        if(votedIdx===i) return;
-        if(votedIdx!==null){
-          S.drawings[votedIdx].votes--;
-          document.getElementById('bdv'+votedIdx).textContent='👍 '+S.drawings[votedIdx].votes;
-          grid.children[votedIdx].classList.remove('voted');
+        if(myVotedIdx===i){
+          // oy geri al
+          dr.votes=Math.max(0,dr.votes-1);
+          card.classList.remove('voted');
+          myVotedIdx=null;
+        } else {
+          // əvvəlki oydan geri al
+          if(myVotedIdx!==null){
+            S.drawings[myVotedIdx].votes=Math.max(0,S.drawings[myVotedIdx].votes-1);
+            document.getElementById('bdv'+myVotedIdx).textContent='👍 '+S.drawings[myVotedIdx].votes;
+            grid.children[myVotedIdx].classList.remove('voted');
+          }
+          myVotedIdx=i;
+          dr.votes++;
+          card.classList.add('voted');
         }
-        votedIdx=i; dr.votes++;
         document.getElementById('bdv'+i).textContent='👍 '+dr.votes;
-        card.classList.add('voted');
+        // Kartları oy sayına görə yenidən sırala (vizual)
+        const allCards=Array.from(grid.children);
+        allCards.sort((a,b)=>{
+          const idxA=parseInt(a.querySelector('.bd-votes').id.replace('bdv',''));
+          const idxB=parseInt(b.querySelector('.bd-votes').id.replace('bdv',''));
+          return S.drawings[idxB].votes - S.drawings[idxA].votes;
+        });
+        allCards.forEach(c=>grid.appendChild(c));
       };
       grid.appendChild(card);
     });
+    // Başlanğıcda oy sayına görə sırala
+    const allCards=Array.from(grid.children);
+    allCards.sort((a,b)=>{
+      const idxA=parseInt(a.querySelector('.bd-votes').id.replace('bdv',''));
+      const idxB=parseInt(b.querySelector('.bd-votes').id.replace('bdv',''));
+      return S.drawings[idxB].votes - S.drawings[idxA].votes;
+    });
+    allCards.forEach(c=>grid.appendChild(c));
   }
 
   document.getElementById('goAgain').style.display=S.isHost?'flex':'none';
@@ -1734,7 +1886,7 @@ function createRoom(){
   if(document.getElementById('cwToggle').checked){
     cw=document.getElementById('cwInput').value.split(/[\n,]+/).map(w=>w.trim()).filter(w=>w.length>1).slice(0,50);
   }
-  S.socket.emit('createRoom',{name,avatar:S.myAvatar,
+  S.socket.emit('createRoom',{name,avatar:S.myAvatar,level:S.myLevel,
     rounds:parseInt(document.getElementById('cRounds').value),
     drawTime:parseInt(document.getElementById('cTime').value),
     category:document.getElementById('cCat').value,
@@ -1748,7 +1900,7 @@ function joinRoom(){
   S.myName=name;
   localStorage.setItem('ct_name',name);
   localStorage.setItem('ct_avatar',String(S.myAvatar));
-  S.socket.emit('joinRoom',{name,avatar:S.myAvatar,code});
+  S.socket.emit('joinRoom',{name,avatar:S.myAvatar,level:S.myLevel,code});
 }
 function emitStart(){S.socket.emit('startGame');}
 function leaveRoom(){S.socket.emit('leaveRoom');S.code='';S.players=[];S.isHost=false;}
