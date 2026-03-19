@@ -549,6 +549,7 @@ app.get('/admin', function(req, res) {
           const kickLink = `/admin/kick${K}&id=${p.id}&code=${r.code}`;
           return `<tr class="${isDrawer?'drawing-row':''}">
             <td>${isDrawer?'✏️':''} ${p.name}${p.isHost?' 👑':''}</td>
+            <td class="meta" style="font-weight:700;color:#f5c842">${p.level||0}</td>
             <td class="score">${p.score} xal</td>
             <td class="meta">${meta.device||'?'}</td>
             <td class="meta">${meta.connectedAt?fmtTime(meta.connectedAt):'?'}</td>
@@ -568,7 +569,7 @@ app.get('/admin', function(req, res) {
           ${r.started && r.word ? `<div class="cur-word">Söz: <b>${r.word}</b> · Qalan vaxt: <b>${r.timeLeft}s</b> · Tapanlar: <b>${r.guessed.length}</b></div>` : ''}
           ${wlogHtml}
           <table class="ptable">
-            <thead><tr><th>Ad</th><th>Xal</th><th>Cihaz</th><th>Qoşulma</th><th></th></tr></thead>
+            <thead><tr><th>Ad</th><th>Lv</th><th>Xal</th><th>Cihaz</th><th>Qoşulma</th><th></th></tr></thead>
             <tbody>${playersHtml}</tbody>
           </table>
         </div>`;
@@ -697,6 +698,7 @@ io.on('connection', function(socket) {
     const customWords = Array.isArray(d && d.customWords)
       ? d.customWords.map(w => String(w).trim().toLowerCase().substring(0, 40)).filter(w => w.length > 1).slice(0, 50)
       : [];
+    const level = Math.min(Math.max(parseInt(d && d.level) || 0, 0), 100);
     const code = genCode();
     rooms[code] = {
       code, round: 1, maxRounds: rounds, drawTime, category, difficulty, customWords,
@@ -704,12 +706,12 @@ io.on('connection', function(socket) {
       word: null, choices: [], guessed: [], recentWords: [],
       _tick: null, _choice: null, _end: null, _autoStart: null,
       timeLeft: 0, _ending: false, awaitingPlayer: null,
-      players: [{ id: socket.id, name, avatar, score: 0, isHost: true, stats: { guessed: 0, drew: 0, totalPts: 0 } }],
+      players: [{ id: socket.id, name, avatar, level, score: 0, isHost: true, stats: { guessed: 0, drew: 0, totalPts: 0 } }],
     };
     socket.join(code); socket.data.code = code;
     const m = connMeta.get(socket.id); if (m) m.code = code;
     serverStats.totalRooms++;
-    addLog('🏠', `${name} #${code} otağını yaratdı (${rooms[code].maxRounds} raund, ${rooms[code].drawTime}s)`);
+    addLog('🏠', `Qoşuldu: ${name} (Lv.${level}) #${code} otağını yaratdı`);
     socket.emit('roomReady', { code, isHost: true, players: rooms[code].players,
       settings: { rounds, drawTime, category, difficulty, customWords } });
   });
@@ -719,6 +721,7 @@ io.on('connection', function(socket) {
     const name   = String((d && d.name) || '').trim().substring(0, 16);
     const code   = String((d && d.code) || '').trim();
     const avatar = Math.min(Math.max(parseInt(d && d.avatar) || 0, 0), 7);
+    const level  = Math.min(Math.max(parseInt(d && d.level)  || 0, 0), 100);
     if (!name) return socket.emit('err', 'Ad daxil edin.');
     if (!/^\d{5}$/.test(code)) return socket.emit('err', '5 rəqəmli kodu daxil edin.');
     const r = rooms[code];
@@ -735,11 +738,11 @@ io.on('connection', function(socket) {
     }
     if (r.started && !r.paused) return socket.emit('err', 'Oyun davam edir.');
     if (r.players.length >= 8) return socket.emit('err', 'Otaq doludur (maks 8).');
-    const p = { id: socket.id, name, avatar, score: 0, isHost: false, stats: { guessed: 0, drew: 0, totalPts: 0 } };
+    const p = { id: socket.id, name, avatar, level, score: 0, isHost: false, stats: { guessed: 0, drew: 0, totalPts: 0 } };
     r.players.push(p);
     socket.join(code); socket.data.code = code;
     const mj = connMeta.get(socket.id); if (mj) mj.code = code;
-    addLog('👋', `${name} #${code} otağına qoşuldu`);
+    addLog('👋', `Qoşuldu: ${name} (Lv.${level}) → #${code}`);
     socket.emit('roomReady', { code, isHost: false, players: r.players,
       settings: { rounds: r.maxRounds, drawTime: r.drawTime, category: r.category, difficulty: r.difficulty, customWords: r.customWords } });
     socket.to(code).emit('playerUpdate', { players: r.players, msg: name + ' qoşuldu! 👋' });
@@ -973,12 +976,18 @@ io.on('connection', function(socket) {
 
   socket.on('disconnect', function() {
     const meta = connMeta.get(socket.id);
-    if (meta && meta.code) addLog('🔴', `Oyunçu ayrıldı · ${meta.device||'?'}`);
+    // Find player name from room
+    const code = socket.data && socket.data.code;
+    let pname = null;
+    if (code && rooms[code]) {
+      const pl = rooms[code].players.find(p => p.id === socket.id);
+      if (pl) pname = pl.name;
+    }
+    if (meta) addLog('🔴', `Ayrıldı${pname ? ': '+pname : ''} · ${meta.device||'?'}`);
     connMeta.delete(socket.id);
     for (const key of sockRate.keys()) {
       if (key.startsWith(socket.id + ':')) sockRate.delete(key);
     }
-    const code = socket.data && socket.data.code;
     if (code) doLeave(socket, code);
   });
 });
