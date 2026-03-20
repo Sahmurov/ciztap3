@@ -184,7 +184,7 @@ body.in-game .top-btns{display:none}
 .gi.red-gi:hover{background:var(--red);color:#fff;border-color:var(--red)}
 
 /* Main 3-column grid */
-.gmain{display:grid;grid-template-columns:130px 1fr 210px;flex:1;min-height:0;overflow:hidden}
+.gmain{display:grid;grid-template-columns:150px 1fr 210px;flex:1;min-height:0;overflow:hidden}
 
 /* Players panel */
 .ppanel{background:var(--card);border-right:1px solid var(--border);
@@ -195,15 +195,15 @@ body.in-game .top-btns{display:none}
   background:rgba(239,51,64,.1);border:1.5px solid rgba(239,51,64,.3);
   color:var(--red);font-size:.78rem;font-weight:800;transition:all .14s;flex-shrink:0}
 .leave-panel-btn:hover{background:var(--red);color:#fff;border-color:var(--red)}
-.pcard{background:var(--card2);border:1.5px solid var(--border);border-radius:8px;padding:7px;position:relative}
+.pcard{background:var(--card2);border:1.5px solid var(--border);border-radius:8px;padding:6px;position:relative}
 .pcard.drawing{border-color:var(--blue);background:rgba(0,145,194,.07)}
 .pcard.isme{border-color:var(--gold)}
-.pcard-row{display:flex;align-items:center;gap:6px}
-.pc-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;flex-shrink:0}
-.pc-info{flex:1;min-width:0}
-.pc-name{font-size:.71rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pcard-row{display:flex;align-items:center;gap:5px}
+.pc-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;flex-shrink:0}
+.pc-info{flex:1;min-width:0;overflow:hidden}
+.pc-name{font-size:.7rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
 .pc-st{font-size:.6rem;color:var(--sub);height:10px}
-.pc-score{font-size:.8rem;font-weight:800;color:var(--gold)}
+.pc-score{font-size:.78rem;font-weight:800;color:var(--gold);flex-shrink:0}
 .pc-kick{position:absolute;top:3px;right:3px;width:13px;height:13px;border-radius:3px;
   background:rgba(239,51,64,.1);border:1px solid rgba(239,51,64,.2);
   color:var(--red);font-size:.55rem;display:flex;align-items:center;justify-content:center}
@@ -528,7 +528,7 @@ body.light .cover{background:rgba(240,244,248,.93)}
 }
 /* ── Home level display ── */
 #homeLvlBadge{margin-top:6px;display:flex;flex-direction:column;gap:3px;align-items:center}
-</style>
+/* ── Lobby settings edit (host) ── */
 .lsettings-edit{background:var(--card2);border:1px solid var(--border);border-radius:10px;
   padding:12px;margin-bottom:12px;display:none}
 .lsettings-edit.show{display:block}
@@ -1606,10 +1606,13 @@ function renderGamePlayers(drawerId){
     else rankHtml='<div class="pc-rank pc-rank-n">'+(rank+1)+'</div>';
     const div=document.createElement('div');
     div.className='pcard'+(isDrawing?' drawing':'')+(isMe?' isme':'');
+    const lvlHtml=p.level?lvlBadge(p.level):'';
     div.innerHTML='<div class="pcard-row">'+rankHtml+
       '<div class="pc-av" style="background:'+av.bg+';color:'+av.c+'">'+av.e+'</div>'+
-      '<div class="pc-info"><div class="pc-name">'+esc(p.name)+(isMe?' ★':'')+' '+(p.level?lvlBadge(p.level):'')+'</div>'+
-      '<div class="pc-st">'+(isDrawing?'✏️':'')+'</div></div>'+
+      '<div class="pc-info">'+
+        '<div class="pc-name">'+esc(p.name)+(isMe?' ★':'')+'</div>'+
+        '<div class="pc-st">'+(isDrawing?'✏️ ':'')+lvlHtml+'</div>'+
+      '</div>'+
       '<div class="pc-score">'+p.score+'</div></div>';
     if(S.isHost&&!p.isHost&&!isMe){
       const kb=document.createElement('button');kb.className='pc-kick';kb.textContent='✕';
