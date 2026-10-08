@@ -5,14 +5,17 @@ Gartic.io-dan ilham alaraq hazırlanmış, **tamamilə Azərbaycan dilindəki s�
 ---
 
 ## Xüsusiyyətlər
-- 300+ Azərbaycan sözü (heyvanlar, yeməklər, şəhərlər, idman, peşələr və s.)
-- 2–8 oyunçu eyni otaqda
+- 400+ Azərbaycan sözü (heyvanlar, yeməklər, nəqliyyat, təbiət, idman, əşyalar və s.)
+- 2–8 oyunçu eyni otaqda, 5 rəqəmli otaq kodu ilə qoşulma
 - Real-time çizgi sinxronizasiyası (Socket.io)
-- Fırça, silgi, doldurma (flood fill) alətləri
-- Söz seçimi sistemi (3 variantdan biri)
-- Progressive hint sistemi (vaxt keçdikcə hərflər açılır)
-- Otaq kodu ilə qoşulma
-- Xal sistemi (vaxt bonusu + sıralama bonusu)
+- Fırça, silgi, doldurma, forma alətləri, undo (sinxron)
+- Çəkən hər turda 5 söz arasından seçir (15 saniyə)
+- Zaman əsaslı xal sistemi: tez tapan daha çox xal alır (10-dan 3-ə qədər)
+- Yaxın cavab (az hərf səhvi) yalnız cavab verənə göstərilir
+- Host üçün raund, vaxt, kateqoriya və çətinlik parametrlərini lobbidə dəyişmək
+- Çəkilişləri PNG kimi yükləmək və oyun sonunda PDF arxivi
+- Level/XP sistemi (brauzerdə saxlanılır)
+- Admin paneli (`/admin`) — açar `ADMIN_KEY` mühit dəyişənindən gəlir (min 8 simvol). Açar təyin edilməyibsə admin söndürülür. Giriş formada daxil olunur, URL-də açar yoxdur.
 
 ---
 
