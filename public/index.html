@@ -202,7 +202,7 @@ body.in-game .top-btns{display:none}
 .pc-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;flex-shrink:0}
 .pc-info{flex:1;min-width:0;overflow:hidden}
 .pc-name{font-size:.7rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
-.pc-st{font-size:.6rem;color:var(--sub);height:10px}
+.pc-st{font-size:.6rem;color:var(--sub);min-height:13px;line-height:1.3;display:flex;align-items:center;gap:3px;flex-wrap:wrap}
 .pc-score{font-size:.78rem;font-weight:800;color:var(--gold);flex-shrink:0}
 .pc-kick{position:absolute;top:3px;right:3px;width:13px;height:13px;border-radius:3px;
   background:rgba(239,51,64,.1);border:1px solid rgba(239,51,64,.2);
@@ -731,6 +731,7 @@ body.light .cover{background:rgba(240,244,248,.93)}
     </div>
     <div class="gtop-r">
       <button class="gi mob-exit" onclick="leaveRoom()" title="Çıx">✕</button>
+      <button class="gi" id="gSkipBtn" onclick="passTurn()" title="Çəkə bilmirəm — turu keç" style="display:none">⏭</button>
       <button class="gi" onclick="toggleSound()" id="gSoundBtn">🔊</button>
       <button class="gi" onclick="toggleTheme()" id="gThemeBtn">🌙</button>
     </div>
@@ -853,12 +854,12 @@ const LEVEL_TIERS=[
   {min:11, max:20, name:'Qızıl',     badge:'🌟', color:'#ffd700', glow:'rgba(255,215,0,.4)',   bg:'rgba(255,215,0,.1)'},
   {min:21, max:30, name:'Almaz',     badge:'💎', color:'#00d4ff', glow:'rgba(0,212,255,.4)',   bg:'rgba(0,212,255,.1)'},
   {min:31, max:40, name:'Kristal',   badge:'🔮', color:'#c084fc', glow:'rgba(192,132,252,.4)', bg:'rgba(192,132,252,.1)'},
-  {min:41, max:50, name:'Ulduz',     badge:'⭐', color:'#ff9500', glow:'rgba(255,149,0,.4)',   bg:'rgba(255,149,0,.1)'},
-  {min:51, max:60, name:'Alov',      badge:'🔥', color:'#ff4500', glow:'rgba(255,69,0,.5)',    bg:'rgba(255,69,0,.12)'},
-  {min:61, max:70, name:'İldırım',   badge:'⚡', color:'#ffe500', glow:'rgba(255,229,0,.4)',   bg:'rgba(255,229,0,.1)'},
-  {min:71, max:80, name:'Dalğa',     badge:'🌊', color:'#00bcd4', glow:'rgba(0,188,212,.4)',   bg:'rgba(0,188,212,.1)'},
-  {min:81, max:90, name:'Tac',       badge:'👑', color:'#ff69b4', glow:'rgba(255,105,180,.5)', bg:'rgba(255,105,180,.12)'},
-  {min:91, max:99, name:'Əfsanə',    badge:'💀', color:'#ef4444', glow:'rgba(239,68,68,.5)',   bg:'rgba(239,68,68,.12)'},
+  {min:41, max:49, name:'Ulduz',     badge:'⭐', color:'#ff9500', glow:'rgba(255,149,0,.4)',   bg:'rgba(255,149,0,.1)'},
+  {min:50, max:59, name:'Alov',      badge:'🔥', color:'#ff4500', glow:'rgba(255,69,0,.5)',    bg:'rgba(255,69,0,.12)'},
+  {min:60, max:69, name:'İldırım',   badge:'⚡', color:'#ffe500', glow:'rgba(255,229,0,.4)',   bg:'rgba(255,229,0,.1)'},
+  {min:70, max:79, name:'Dalğa',     badge:'🌊', color:'#00bcd4', glow:'rgba(0,188,212,.4)',   bg:'rgba(0,188,212,.1)'},
+  {min:80, max:89, name:'Tac',       badge:'👑', color:'#ff69b4', glow:'rgba(255,105,180,.5)', bg:'rgba(255,105,180,.12)'},
+  {min:90, max:99, name:'Əfsanə',    badge:'💀', color:'#ef4444', glow:'rgba(239,68,68,.5)',   bg:'rgba(239,68,68,.12)'},
   {min:100,max:100,name:'Legend',    badge:'🌈', color:'rainbow',  glow:'rgba(255,255,255,.6)', bg:'rgba(255,255,255,.08)'},
 ];
 function getTier(lvl){
@@ -1004,6 +1005,14 @@ function sndApplause(){
   }catch(e){}
 }
 
+function setPassBtn(on){
+  const b=document.getElementById('gSkipBtn'); if(b) b.style.display=on?'flex':'none';
+}
+function passTurn(){
+  if(!S.socket||!S.isDrawer) return;
+  if(!confirm('Çəkə bilmirsiniz? Turu keçmək istəyirsiniz? Rəqiblər +5 xal alacaq.')) return;
+  S.socket.emit('passTurn');
+}
 function toggleSound(){
   S.soundOn=!S.soundOn;
   const ic=S.soundOn?'🔊':'🔇';
@@ -1337,6 +1346,7 @@ function connectSocket(){
   sk.on('gameStarted',function(){
     goScreen('gameScreen');
     clearChat(); S.undoStack=[]; S.drawings=[]; S.currentDrawerId=null;
+    S.voteCounts={}; S.myVote=null;
     S.isDrawer=false; S.guessedCorrect=false;
     setDrawerMode(false); showCover('',''); updateWordOverlay('');
     fillWhite();
@@ -1346,6 +1356,27 @@ function connectSocket(){
     if(S.xpTicker) clearInterval(S.xpTicker);
     S.xpTicker=setInterval(function(){addXP(1);},XP_TICK_MS);
   });
+
+  // Pauzadan davam: xallar və qalereya qorunur, yalnız ekran və ticker bərpa olunur
+  sk.on('gameResumed',function(){
+    goScreen('gameScreen');
+    showCover('','');
+    requestAnimationFrame(scaleCwrap);
+    sysMsg('Oyun davam edir ▶');
+    if(S.xpTicker) clearInterval(S.xpTicker);
+    S.xpTicker=setInterval(function(){addXP(1);},XP_TICK_MS);
+  });
+
+  sk.on('votesUpdated',function(d){
+    S.voteCounts=d.counts||{};
+    if(document.getElementById('gameOverScreen').classList.contains('active')) renderBestGallery(document.getElementById('goStats'));
+  });
+  sk.on('myVote',function(d){
+    S.myVote=d.turnNo;
+    if(document.getElementById('gameOverScreen').classList.contains('active')) renderBestGallery(document.getElementById('goStats'));
+  });
+
+  sk.on('turnPassed',function(d){ sysMsg(d.drawerName+' turu keçdi ⏭ (rəqiblərə +5 xal)'); });
 
   sk.on('waitingWord',function(data){
     S.isDrawer=(data.drawerId===S.myId);
@@ -1357,18 +1388,25 @@ function connectSocket(){
   sk.on('chooseWord',function(data){
     S.isDrawer=true;
     const ov=document.getElementById('cover'); ov.classList.remove('hidden');
-    let h='<h3>✏️ Bir söz seçin</h3><p style="color:var(--sub)">15 saniyə</p><div class="wchoices">';
-    data.words.forEach(w=>h+='<button class="wbtn" onclick="chooseWord(\''+esc(w)+'\')">'+esc(w)+'</button>');
-    ov.innerHTML=h+'</div>';
+    ov.innerHTML='<h3>✏️ Bir söz seçin</h3><p style="color:var(--sub)">15 saniyə</p><div class="wchoices"></div>';
+    const box=ov.querySelector('.wchoices');
+    data.words.forEach(w=>{
+      const b=document.createElement('button');
+      b.className='wbtn'; b.textContent=w;
+      b.onclick=()=>chooseWord(w);
+      box.appendChild(b);
+    });
   });
 
   sk.on('yourWord',function(data){
+    setPassBtn(true);
     S.myWord=data.word;
     document.getElementById('wordHint').textContent=data.word;
     updateWordOverlay(data.word);
   });
 
   sk.on('turnStart',function(data){
+    setPassBtn(data.drawerId===S.myId);
     S.isDrawer=(data.drawerId===S.myId);
     S.guessedCorrect=false; S.undoStack=[];
     fillWhite(); updateWordOverlay('');
@@ -1432,6 +1470,7 @@ function connectSocket(){
   });
 
   sk.on('turnEnd',function(data){
+    setPassBtn(false);
     S.isDrawer=false; setDrawerMode(false); setGuessedMode(true); S.myWord='';
     updateWordOverlay('');
     document.getElementById('wordHint').textContent=data.word;
@@ -1443,7 +1482,7 @@ function connectSocket(){
         word:data.word,
         drawerName:drawerP?drawerP.name:'?',
         dataUrl:S.canvas.toDataURL('image/png'),
-        votes:0,
+        turnNo:data.turnNo,
       });
       if(S.drawings.length>20) S.drawings.shift();
     }catch(e){}
@@ -1692,6 +1731,27 @@ function showRevealModal(word,scores){
   setTimeout(()=>{if(div.parentNode)div.remove();},5400);
 }
 
+// ── Qalereya: səslər serverdən gəlir, hamıda eyni sayı göstərir ─────────────
+function renderBestGallery(afterEl){
+  const old=document.getElementById('bdSection'); if(old) old.remove();
+  if(!S.drawings||!S.drawings.length||!afterEl) return;
+  const vc=S.voteCounts||{};
+  const sec=document.createElement('div');
+  sec.className='bd-section'; sec.id='bdSection';
+  sec.innerHTML='<div class="bd-title">🎨 Ən yaxşı çəkiliş — səs ver!</div><div class="bd-grid"></div>';
+  afterEl.after(sec);
+  const grid=sec.querySelector('.bd-grid');
+  S.drawings.slice().sort((a,b)=>(vc[b.turnNo]||0)-(vc[a.turnNo]||0)).forEach(function(dr){
+    const card=document.createElement('div');
+    card.className='bd-card'+(S.myVote===dr.turnNo?' voted':'');
+    card.innerHTML='<img class="bd-img" src="'+dr.dataUrl+'" alt="">'
+      +'<div class="bd-info"><div class="bd-word">'+esc(dr.word)+'</div>'
+      +'<div class="bd-drawer">'+esc(dr.drawerName)+'</div>'
+      +'<div class="bd-votes">👍 '+(vc[dr.turnNo]||0)+'</div></div>';
+    card.onclick=function(){ S.socket.emit('vote',{turnNo:dr.turnNo}); };
+    grid.appendChild(card);
+  });
+}
 function showGameOver(scores,winner,winnerAv){
   goScreen('gameOverScreen');
   sndApplause();
@@ -1751,62 +1811,7 @@ function showGameOver(scores,winner,winnerAv){
     '</div></div>';
   } else { sg.innerHTML=''; }
 
-  // ── Best Drawing Gallery ────────────────────────────────
-  if(S.drawings&&S.drawings.length>0){
-    const bdSection=document.createElement('div');
-    bdSection.className='bd-section';
-    bdSection.innerHTML='<div class="bd-title">🎨 Ən yaxşı çəkiliş — səs ver!</div><div class="bd-grid" id="bdGrid"></div>';
-    sg.after(bdSection);
-    // Shared votes — hər kart üçün votes sayı hamıya görünür
-    let myVotedIdx=null;
-    const grid=bdSection.querySelector('#bdGrid');
-    S.drawings.forEach(function(dr,i){
-      const card=document.createElement('div');
-      card.className='bd-card';
-      card.innerHTML='<img class="bd-img" src="'+dr.dataUrl+'" alt="'+esc(dr.word)+'">'
-        +'<div class="bd-info">'
-        +'<div class="bd-word">'+esc(dr.word)+'</div>'
-        +'<div class="bd-drawer">'+esc(dr.drawerName)+'</div>'
-        +'<div class="bd-votes" id="bdv'+i+'">👍 '+dr.votes+'</div>'
-        +'</div>';
-      card.onclick=function(){
-        if(myVotedIdx===i){
-          // oy geri al
-          dr.votes=Math.max(0,dr.votes-1);
-          card.classList.remove('voted');
-          myVotedIdx=null;
-        } else {
-          // əvvəlki oydan geri al
-          if(myVotedIdx!==null){
-            S.drawings[myVotedIdx].votes=Math.max(0,S.drawings[myVotedIdx].votes-1);
-            document.getElementById('bdv'+myVotedIdx).textContent='👍 '+S.drawings[myVotedIdx].votes;
-            grid.children[myVotedIdx].classList.remove('voted');
-          }
-          myVotedIdx=i;
-          dr.votes++;
-          card.classList.add('voted');
-        }
-        document.getElementById('bdv'+i).textContent='👍 '+dr.votes;
-        // Kartları oy sayına görə yenidən sırala (vizual)
-        const allCards=Array.from(grid.children);
-        allCards.sort((a,b)=>{
-          const idxA=parseInt(a.querySelector('.bd-votes').id.replace('bdv',''));
-          const idxB=parseInt(b.querySelector('.bd-votes').id.replace('bdv',''));
-          return S.drawings[idxB].votes - S.drawings[idxA].votes;
-        });
-        allCards.forEach(c=>grid.appendChild(c));
-      };
-      grid.appendChild(card);
-    });
-    // Başlanğıcda oy sayına görə sırala
-    const allCards=Array.from(grid.children);
-    allCards.sort((a,b)=>{
-      const idxA=parseInt(a.querySelector('.bd-votes').id.replace('bdv',''));
-      const idxB=parseInt(b.querySelector('.bd-votes').id.replace('bdv',''));
-      return S.drawings[idxB].votes - S.drawings[idxA].votes;
-    });
-    allCards.forEach(c=>grid.appendChild(c));
-  }
+  renderBestGallery(sg);
 
   document.getElementById('goAgain').style.display=S.isHost?'flex':'none';
 }
@@ -1871,7 +1876,7 @@ function emitStopAutoStart(){ S.socket.emit('stopAutoStart'); }
 function emitPlayAgain(){ S.socket.emit('playAgain'); }
 function sendGuess(){
   const inp=document.getElementById('cinput');
-  const txt=inp.value.trim().toLowerCase();
+  const txt=inp.value.trim(); // kiçiltmə serverdə AZ-aware aparılır
   if(!txt||S.guessedCorrect||S.isDrawer) return;
   S.socket.emit('guess',{text:txt}); inp.value='';
 }
@@ -1924,40 +1929,59 @@ function sendSettingsUpdate(){
 }
 
 // ── PDF arxiv ────────────────────────────────────────────────────────────────
-function downloadDrawingsPDF(){
+const PDF_FONT_URL='https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.3/ttf/DejaVuSans.ttf';
+let pdfFontB64=null;
+// Şrift yalnız PDF düyməsinə basanda yüklənir (ilk dəfə ~740KB)
+async function loadPdfFont(){
+  if(pdfFontB64) return pdfFontB64;
+  const res=await fetch(PDF_FONT_URL);
+  if(!res.ok) throw new Error('font HTTP '+res.status);
+  const bytes=new Uint8Array(await res.arrayBuffer());
+  let bin=''; const CH=0x8000;
+  for(let i=0;i<bytes.length;i+=CH) bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));
+  pdfFontB64=btoa(bin);
+  return pdfFontB64;
+}
+async function downloadDrawingsPDF(){
   if(!S.drawings||!S.drawings.length){toast('Heç bir çəkiliş yoxdur','bad');return;}
+  let fontName='helvetica', fontOk=true;
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   try{
-    const {jsPDF}=window.jspdf;
-    const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const b64=await loadPdfFont();
+    doc.addFileToVFS('DejaVuSans.ttf',b64);
+    doc.addFont('DejaVuSans.ttf','DejaVu','normal');
+    fontName='DejaVu';
+  }catch(e){
+    fontOk=false; console.warn('PDF şrifti yüklənmədi:',e);
+  }
+  try{
     const PW=210,PH=297,PAD=14,COLS=2;
     const cellW=(PW-PAD*2-10)/COLS, cellH=cellW*0.75+14;
-    doc.setFont('helvetica','bold');
+    doc.setFont(fontName,'normal');
     doc.setFontSize(18);
     doc.setTextColor(30,30,30);
     doc.text('CizTap — Çəkiliş Arxivi',PW/2,20,{align:'center'});
     doc.setFontSize(9);doc.setTextColor(120,120,120);
     doc.text(new Date().toLocaleDateString('az-AZ'),PW/2,27,{align:'center'});
     let x=PAD,y=36,count=0;
-    S.drawings.forEach(function(dr,i){
+    S.drawings.forEach(function(dr){
       if(y+cellH>PH-PAD){doc.addPage();x=PAD;y=PAD;}
-      // Card background
       doc.setFillColor(245,247,250);
       doc.roundedRect(x,y,cellW,cellH,3,3,'F');
       doc.setDrawColor(200,210,220);
       doc.roundedRect(x,y,cellW,cellH,3,3,'S');
-      // Image
       try{doc.addImage(dr.dataUrl,'PNG',x+2,y+2,cellW-4,cellW*0.75-2);}catch(e){}
-      // Caption
-      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(30,30,30);
+      doc.setFont(fontName,'normal');doc.setFontSize(8);doc.setTextColor(30,30,30);
       doc.text(dr.word,x+cellW/2,y+cellW*0.75+6,{align:'center',maxWidth:cellW-4});
-      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(120,120,120);
-      doc.text('✏️ '+dr.drawerName,x+cellW/2,y+cellW*0.75+11,{align:'center',maxWidth:cellW-4});
+      doc.setFontSize(7);doc.setTextColor(120,120,120);
+      doc.text('Çəkən: '+dr.drawerName,x+cellW/2,y+cellW*0.75+11,{align:'center',maxWidth:cellW-4});
       count++;
       x+=cellW+10;
       if(count%COLS===0){x=PAD;y+=cellH+8;}
     });
     doc.save('ciztap-arxiv.pdf');
-    toast('PDF yükləndi ✓','ok');
+    toast(fontOk?'PDF yükləndi ✓':'PDF yükləndi (şrift yüklənmədi, hərflər səhv ola bilər)', fontOk?'ok':'bad');
   }catch(e){
     toast('PDF xətası: '+e.message,'bad');
     console.error(e);
