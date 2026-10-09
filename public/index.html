@@ -81,6 +81,7 @@ body.in-game .top-btns{display:none}
   display:flex;align-items:center;justify-content:center;transition:all .14s}
 .avbtn:hover{transform:scale(1.1);border-color:var(--blue)}
 .avbtn.sel{border-color:var(--gold);background:rgba(245,200,66,.14);transform:scale(1.12)}
+@media (max-width:420px){.avbtn{width:38px;height:38px;font-size:1.05rem}.av-row{gap:5px}}
 
 .home-card{background:var(--card);border:1px solid var(--border);border-radius:17px;
   padding:22px 24px;width:100%;max-width:430px}
@@ -570,14 +571,26 @@ body.in-game .lock-btn{display:none}
   transition:opacity .7s ease,transform .7s ease;font-family:'Nunito',system-ui,sans-serif}
 .hw.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
 #hLine{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.8);
-  color:#fff;font-family:'Baloo 2',cursive;font-weight:800;font-size:clamp(1.6rem,6vw,2.8rem);
-  text-shadow:0 0 14px rgba(255,45,85,.9);opacity:0;transition:opacity 1s ease,transform 1s ease;white-space:nowrap}
-#hLine.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
-body.love{
-  --bg:#f6d6e1;--card:#fbe6ee;--card2:#f2c2d3;--border:#e48aab;
-  --sub:#7a2a4d;--text:#3b0a1f;--blue:#e11d48;--blue2:#be123c;--green:#e11d48;--green2:#be123c;
-  --red:#be123c;--shadow:rgba(120,10,50,.22);
+  color:#fff;font-family:'Baloo 2',cursive;font-weight:800;font-size:clamp(2rem,7vw,3.4rem);
+  text-shadow:0 0 6px #fff,0 0 18px rgba(255,45,85,.95),0 0 36px rgba(255,45,85,.6);
+  opacity:0;transition:opacity 1s ease,transform 1s ease;white-space:nowrap}
+#hLine.on{opacity:1;transform:translate(-50%,-50%) scale(1);animation:hPulse 2.4s ease-in-out 1s infinite}
+@keyframes hPulse{
+  0%,100%{transform:translate(-50%,-50%) scale(1)}
+  50%{transform:translate(-50%,-50%) scale(1.06)}
 }
+body.love{
+  --bg:#f6d6e1;--card:#fff4f8;--card2:#f8d5e2;--border:#d9708f;
+  --sub:#6e2145;--text:#2b0716;--blue:#be123c;--blue2:#9f1239;--green:#e11d48;--green2:#be123c;
+  --red:#9f1239;--shadow:rgba(120,10,50,.22);
+}
+/* aktiv vəziyyətlər sevgi temasında aydın seçilsin */
+body.love .tab.active{background:#be123c;color:#fff;box-shadow:0 2px 10px rgba(190,18,60,.35)}
+body.love .diff-btn.sel-all{border-color:#be123c;background:#be123c;color:#fff}
+body.love .diff-btn.sel-easy,body.love .diff-btn.sel-medium,body.love .diff-btn.sel-hard{border-color:#be123c;background:#fde2ea;color:#9f1239}
+body.love .avbtn.sel{border-color:#be123c;background:#fde2ea;box-shadow:0 0 0 3px rgba(190,18,60,.25)}
+body.love .tabs{background:#f8d5e2}
+body.love .intro-btn{background:#fff4f8;color:#2b0716;border-color:#d9708f}
 body.love::before{opacity:1;background:
   radial-gradient(ellipse 60% 45% at 8% 12%,rgba(244,63,94,.16) 0%,transparent 60%),
   radial-gradient(ellipse 50% 40% at 92% 88%,rgba(251,113,133,.16) 0%,transparent 60%)}
@@ -585,9 +598,9 @@ body.love::before{opacity:1;background:
   animation:fheartUp linear forwards}
 @keyframes fheartUp{
   0%{transform:translateY(0) translateX(0) rotate(-8deg);opacity:0}
-  10%{opacity:.75}
+  10%{opacity:.5}
   50%{transform:translateY(-50vh) translateX(18px) rotate(8deg)}
-  90%{opacity:.6}
+  90%{opacity:.35}
   100%{transform:translateY(-110vh) translateX(-14px) rotate(-6deg);opacity:0}
 }
 /* ── Level badge ── */
@@ -1206,27 +1219,33 @@ function tryUnlock(){
 }
 // Ürək düzümü: hər söz üçün təxmini düzbucaq hesablanır, üst-üstə düşən söz atlanır
 function heartLayout(vw, vh, words){
-  // Ölçü: ürək eni və hündürlüyü ekrana sığsın (kənar sözlər üçün 60px boşluq)
-  const s=Math.max(4, Math.min((vw/2-60)/16, (vh-100)/30, 40));
+  // Ölçü: ürək eni və hündürlüyü ekrana sığsın (kənar sözlər üçün 40px boşluq)
+  const s=Math.max(4, Math.min((vw/2-40)/16, (vh-120)/30, 40));
   const cx=vw/2, cy=vh/2 - s*2.3;
   const placed=[], out=[];
-  const STEPS=720, MAX=95;
-  for(let k=0;k<STEPS && out.length<MAX;k++){
-    const t=(k/STEPS)*Math.PI*2;
-    const x=16*Math.pow(Math.sin(t),3);
-    const y=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);
-    const px=cx+x*s, py=cy-y*s;
-    const word=words[out.length % words.length];
-    const size=12+(k%4)*1.5;
-    const w=word.length*size*0.56, hgt=size*1.35;
-    const r={l:px-w/2-4, r:px+w/2+4, t:py-hgt/2-3, b:py+hgt/2+3};
-    const hit=placed.some(q=>!(r.r<q.l || r.l>q.r || r.b<q.t || r.t>q.b));
-    if(hit) continue;
-    placed.push(r);
-    out.push({x:px, y:py, size:size, word:word});
+  // İki sıra: xarici (əsas) və daxili (kiçik, mərkəz mətnindən uzaq)
+  const layers=[{k:1.0, sizeBase:12, step:1400, max:120}, {k:0.8, sizeBase:10, step:1100, max:70}];
+  for(const L of layers){
+    for(let k=0;k<L.step && countLayer(out,L)<L.max;k++){
+      const t=(k/L.step)*Math.PI*2;
+      const x=16*Math.pow(Math.sin(t),3)*L.k;
+      const y=(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t))*L.k;
+      const px=cx+x*s, py=cy-y*s;
+      const word=words[out.length % words.length];
+      const size=L.sizeBase+(k%4)*1.5;
+      // ehtiyatlı ölçü: sözün eni və hündürlüyü real render-dən böyük götürülür
+      const w=word.length*size*0.6, hgt=size*1.4;
+      const r={l:px-w/2-3, r:px+w/2+3, t:py-hgt/2-2, b:py+hgt/2+2};
+      const hit=placed.some(q=>!(r.r<q.l || r.l>q.r || r.b<q.t || r.t>q.b));
+      const outside=r.l<6 || r.r>vw-6 || r.t<6 || r.b>vh-6;
+      if(hit || outside) continue;
+      placed.push(r);
+      out.push({x:px, y:py, size:size, word:word, layer:L.k});
+    }
   }
   return out;
 }
+function countLayer(list, L){ return list.filter(p=>p.layer===L.k).length; }
 function playHeartIntro(){
   const ov=document.getElementById('heartOverlay');
   const line=document.getElementById('hLine');
@@ -1234,6 +1253,8 @@ function playHeartIntro(){
   line.textContent=LOVE_LINE; line.classList.remove('on');
   ov.classList.add('show');
   const pts=heartLayout(window.innerWidth,window.innerHeight,HEART_WORDS);
+  // Sözlər təxminən 2.4 saniyədə çıxır (söz sayından asılı olmayaraq)
+  const stagger=Math.max(18, Math.min(60, 2400/Math.max(1,pts.length)));
   pts.forEach(function(p,i){
     const el=document.createElement('span');
     el.className='hw';
@@ -1242,9 +1263,9 @@ function playHeartIntro(){
     el.style.top=p.y+'px';
     el.style.fontSize=p.size+'px';
     ov.appendChild(el);
-    setTimeout(()=>el.classList.add('on'), i*30);
+    setTimeout(()=>el.classList.add('on'), i*stagger);
   });
-  const lineAt=pts.length*30+400;
+  const lineAt=pts.length*stagger+400;
   setTimeout(()=>line.classList.add('on'), lineAt);
   setTimeout(()=>{ applyMode('love'); ov.classList.remove('show'); }, lineAt+2600);
   setTimeout(()=>{ ov.querySelectorAll('.hw').forEach(n=>n.remove()); line.classList.remove('on'); }, lineAt+4200);
@@ -1272,14 +1293,14 @@ function startLoveHearts(){
     el.className='fheart';
     el.textContent=['❤️','💕','💗','💖','🩷'][(Math.random()*5)|0];
     el.style.left=(Math.random()*100)+'vw';
-    el.style.fontSize=(12+Math.random()*22)+'px';
+    el.style.fontSize=(12+Math.random()*16)+'px';
     const dur=6+Math.random()*6;
     el.style.animationDuration=dur+'s';
     document.body.appendChild(el);
     setTimeout(()=>el.remove(), dur*1000+200);
   };
   for(let i=0;i<6;i++) setTimeout(spawn, i*400);
-  loveHeartIv=setInterval(spawn,700);
+  loveHeartIv=setInterval(spawn,1200);
 }
 function stopLoveHearts(){
   if(loveHeartIv){ clearInterval(loveHeartIv); loveHeartIv=null; }
