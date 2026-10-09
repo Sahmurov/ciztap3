@@ -118,7 +118,7 @@ const WORDS = {
       'minik maşını',
     ],
     medium: [
-      'tramvay', 'yelkənli', 'qanadlı', 'ekskavator', 'buldozer', 'yanğın maşını', 'polismaşını',
+      'tramvay', 'yelkənli', 'qanadlı', 'ekskavator', 'buldozer', 'yanğın maşını', 'polis maşını',
       'skuter', 'elektrikli skuter', 'qayıq', 'motorlu qayıq', 'reaktiv təyyarə', 'yük qatarı',
     ],
     hard: [
@@ -296,6 +296,35 @@ function lowerAz(s) {
 const AZ_TO_LAT = { 'ç':'c', 'ş':'s', 'ə':'e', 'ı':'i', 'ğ':'g', 'ö':'o', 'ü':'u' };
 function keyAz(s) {
   return lowerAz(s).replace(/[çşəığöü]/g, ch => AZ_TO_LAT[ch]).replace(/\s+/g, ' ').trim();
+}
+// Cavab qəbulu: forma fərqləri (ürəkli/ürək, maşını/maşın) eyni sayılır
+// Çoxsözlü sözdə onun hissələri də qəbul olunur (itfaiyə → itfaiyə maşını)
+function stemTok(t) {
+  for (const suf of ['nin', 'nun', 'li', 'lu', 'in', 'un', 'i', 'u']) {
+    if (t.length - suf.length >= 3 && t.endsWith(suf)) return t.slice(0, -suf.length);
+  }
+  return t;
+}
+const ANS_STOP = ['iki', 'bir', 'bu', 'və', 'ilə', 'çox', 'ən', 'da', 'də'];
+// İki söz forması eyni sayılır: eyni kök, ya da biri digərinin qısa forması (masin ~ masini)
+function tokEq(a, b) {
+  if (a === b) return true;
+  if (stemTok(a) === stemTok(b)) return true;
+  const m = Math.min(a.length, b.length);
+  return m >= 4 && Math.abs(a.length - b.length) <= 2 && (a.startsWith(b) || b.startsWith(a));
+}
+function answerMatches(guess, word) {
+  const g = keyAz(guess), w = keyAz(word);
+  if (!g || !w) return false;
+  if (g === w) return true;
+  const gt = g.split(' ').filter(Boolean);
+  const wt = w.split(' ').filter(Boolean);
+  if (!gt.length || !wt.length) return false;
+  if (gt.length === wt.length && gt.every((t, i) => tokEq(t, wt[i]))) return true;
+  if (wt.length > 1) {
+    return gt.every(t => t.length >= 3 && !ANS_STOP.includes(t) && wt.some(x => tokEq(t, x)));
+  }
+  return false;
 }
 function isClose(guess, word) {
   const g = keyAz(guess), w = keyAz(word);
@@ -919,7 +948,7 @@ io.on('connection', function(socket) {
     const guess = lowerAz(String((d && d.text) || '').trim()).substring(0, 80);
     if (!guess) return;
 
-    if (keyAz(guess) === keyAz(r.word)) {
+    if (answerMatches(guess, r.word)) {
       // Correct — time-based scoring
       const pts        = calcPts(r.drawTime, r.timeLeft);
       const drawerPts  = Math.ceil(pts / 2);
