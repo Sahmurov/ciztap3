@@ -516,6 +516,80 @@ body.light .cover{background:rgba(240,244,248,.93)}
   border:1px solid rgba(239,51,64,.25);color:var(--red);font-size:.74rem;font-weight:700}
 .friend-del-btn:hover{background:var(--red);color:#fff}
 .friend-empty{color:var(--sub);font-size:.8rem;font-style:italic;text-align:center;padding:8px}
+/* ══ Sevgi rejimi ══════════════════════════════════════════════════════ */
+body{transition:background-color .8s ease,color .8s ease}
+body.love .gtop{background:linear-gradient(90deg,#fff1f5,#ffe1ec);border-bottom-color:#f9a8c4}
+body.love .ppanel{background:linear-gradient(180deg,#fff7fa,#ffe8f0);border-right-color:#f9a8c4}
+body.love .cpanel{background:linear-gradient(180deg,#fff7fa,#ffeef4);border-left-color:#f9a8c4}
+body.love .pcard{background:#fff;border-color:#fbcfe8}
+body.love .pcard.drawing{background:#fff0f5;border-color:#e11d48}
+body.love .cwrap:not(.drawer-active){box-shadow:0 0 0 3px #fb7185,0 0 22px rgba(244,63,94,.35),0 4px 18px var(--shadow)}
+body.love .modal{background:linear-gradient(180deg,#fff7fa,#ffe4ec);border-color:#fbcfe8}
+body.love .cmsg.ok{background:rgba(244,63,94,.08);border-color:rgba(244,63,94,.3)}
+.burst-heart{position:fixed;z-index:10002;pointer-events:none;transform:translate(-50%,-50%);
+  animation:burstHeart 1.2s ease-out forwards;user-select:none}
+@keyframes burstHeart{
+  0%{opacity:1;transform:translate(-50%,-50%) scale(.3) rotate(0deg)}
+  70%{opacity:1}
+  100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.1) rotate(var(--rot))}
+}
+.intro-btn{position:fixed;top:52px;left:12px;z-index:9999;display:none;padding:6px 10px;border-radius:9px;
+  background:var(--card);border:1px solid var(--border);color:var(--text);font-size:.74rem;font-weight:800;
+  box-shadow:0 2px 8px var(--shadow)}
+body.love .intro-btn{display:block}
+body.in-game .intro-btn{display:none}
+.lcounter{display:none;text-align:center;margin:4px auto 14px}
+body.love .lcounter{display:block;margin:30px auto 26px}
+body.love #homeScreen .logo{display:none}
+.lc-date{font-size:.82rem;color:var(--sub);font-weight:700;margin-bottom:8px}
+.lc-boxes{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.lc-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:6px 10px;min-width:70px;
+  box-shadow:0 4px 14px var(--shadow)}
+.lc-box b{display:block;font-family:'Baloo 2',cursive;font-size:clamp(1.7rem,6vw,2.4rem);font-weight:800;color:#e11d48;
+  font-variant-numeric:tabular-nums}
+.lc-box span{font-size:.6rem;letter-spacing:1px;color:var(--sub);font-weight:800}
+.lock-btn{position:fixed;top:10px;left:12px;z-index:9999;font-size:1rem}
+body.in-game .lock-btn{display:none}
+.gate{position:fixed;inset:0;z-index:10001;display:none;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(3px)}
+.gate.show{display:flex}
+.gate-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;
+  display:flex;flex-wrap:wrap;gap:8px;width:min(92vw,320px);box-shadow:0 10px 40px var(--shadow)}
+.gate-box input{flex:1;min-width:0;padding:9px 11px;border-radius:9px;border:1.5px solid var(--border);
+  background:var(--card2);color:var(--text);font-size:1rem;letter-spacing:2px}
+.gate-box input:focus{outline:none;border-color:var(--blue)}
+.gate-btn{padding:9px 16px;border-radius:9px;background:var(--blue);color:#fff;font-weight:800}
+.gate-err{width:100%;font-size:.8rem;color:var(--red);min-height:1em}
+.gate-box.shake{animation:gateShake .4s}
+@keyframes gateShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#heartOverlay{position:fixed;inset:0;z-index:10000;background:#000;opacity:0;pointer-events:none;
+  transition:opacity 1.4s ease;overflow:hidden}
+#heartOverlay.show{opacity:1;pointer-events:auto}
+.hw{position:fixed;transform:translate(-50%,-50%) scale(.6);opacity:0;color:#ff2d55;font-weight:800;
+  white-space:nowrap;text-shadow:0 0 8px rgba(255,45,85,.85),0 0 18px rgba(255,45,85,.4);
+  transition:opacity .7s ease,transform .7s ease;font-family:'Nunito',system-ui,sans-serif}
+.hw.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#hLine{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.8);
+  color:#fff;font-family:'Baloo 2',cursive;font-weight:800;font-size:clamp(1.6rem,6vw,2.8rem);
+  text-shadow:0 0 14px rgba(255,45,85,.9);opacity:0;transition:opacity 1s ease,transform 1s ease;white-space:nowrap}
+#hLine.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+body.love{
+  --bg:#fff0f5;--card:#fff7fa;--card2:#ffe1ec;--border:#f9a8c4;
+  --sub:#9d4a6e;--text:#4a0f26;--blue:#e11d48;--blue2:#be123c;--green:#e11d48;--green2:#be123c;
+  --red:#be123c;--shadow:rgba(190,18,60,.18);
+}
+body.love::before{opacity:1;background:
+  radial-gradient(ellipse 60% 45% at 8% 12%,rgba(244,63,94,.16) 0%,transparent 60%),
+  radial-gradient(ellipse 50% 40% at 92% 88%,rgba(251,113,133,.16) 0%,transparent 60%)}
+.fheart{position:fixed;bottom:-50px;z-index:0;pointer-events:none;user-select:none;
+  animation:fheartUp linear forwards}
+@keyframes fheartUp{
+  0%{transform:translateY(0) translateX(0) rotate(-8deg);opacity:0}
+  10%{opacity:.75}
+  50%{transform:translateY(-50vh) translateX(18px) rotate(8deg)}
+  90%{opacity:.6}
+  100%{transform:translateY(-110vh) translateX(-14px) rotate(-6deg);opacity:0}
+}
 /* ── Level badge ── */
 .lvl-badge{display:inline-flex;align-items:center;gap:2px;line-height:1.3;vertical-align:middle;flex-shrink:0}
 @keyframes lvlUpPop{
@@ -545,9 +619,29 @@ body.light .cover{background:rgba(240,244,248,.93)}
   <button class="topbtn" id="soundBtn" onclick="toggleSound()">🔊</button>
   <button class="topbtn" id="themeBtn" onclick="toggleTheme()">🌙</button>
 </div>
+<button class="topbtn lock-btn" id="lockBtn" onclick="onLockClick()">🔒</button>
+<button class="intro-btn" id="introBtn" onclick="playHeartIntro()">▶ İntro</button>
+<div id="gate" class="gate">
+  <div class="gate-box" id="gateBox">
+    <input type="password" id="gateInp" autocomplete="off" placeholder="••••••••"
+      onkeydown="if(event.key==='Enter')tryUnlock()">
+    <button class="gate-btn" onclick="tryUnlock()">Aç</button>
+    <div id="gateErr" class="gate-err"></div>
+  </div>
+</div>
+<div id="heartOverlay"><div id="hLine"></div></div>
 
 <!-- ══ HOME ══ -->
 <div id="homeScreen" class="screen active">
+  <div id="loveCounter" class="lcounter">
+    <div class="lc-date">24/07/2026 (saat 05:15) — bu günə qədər</div>
+    <div class="lc-boxes">
+      <div class="lc-box"><b id="lcD">0</b><span>GÜN</span></div>
+      <div class="lc-box"><b id="lcH">00</b><span>SAAT</span></div>
+      <div class="lc-box"><b id="lcM">00</b><span>DƏQİQƏ</span></div>
+      <div class="lc-box"><b id="lcS">00</b><span>SANİYƏ</span></div>
+    </div>
+  </div>
   <div class="logo">
     <h1>CizTap</h1><p>Çiz. Tap. Gül.</p>
     <div class="flag-bar">
@@ -1019,12 +1113,168 @@ function toggleSound(){
   document.getElementById('soundBtn').textContent=ic;
   const g=document.getElementById('gSoundBtn');if(g)g.textContent=ic;
 }
+// ══ Sevgi rejimi ═══════════════════════════════════════════════════════════
+const LOVE_PASS = '24072026';
+const LOVE_LINE = 'Səni çox sevirəm';  // ← bu cümləni istədiyin kimi dəyişə bilərsən
+const HEART_WORDS = ['Seni seviyorum','Ti amo','Te amo',"Je t'aime",'Ich liebe dich','Eu te amo',
+  'Anh yêu em','Jag älskar dig',"Σ' αγαπώ",'Я тебя люблю','我爱你','사랑해','ฉันรักเธอ','Aku cinta kamu',
+  'Ik hou van jou','Kocham cię','Я тебе кохаю','मैं तुमसे प्यार करता हूँ','愛してる','I love you',
+  'Səni sevirəm','Te quiero','Ti voglio bene'];
+let loveTimer=null, loveHeartIv=null;
+function isLoveUnlocked(){ return localStorage.getItem('ct_love')==='1'; }
+function currentMode(){
+  const b=document.body;
+  return b.classList.contains('love')?'love':(b.classList.contains('light')?'light':'dark');
+}
+function applyMode(mode){
+  const b=document.body;
+  b.classList.remove('light','love');
+  if(mode==='light') b.classList.add('light');
+  if(mode==='love') b.classList.add('love');
+  const ic = mode==='light'?'☀️':(mode==='love'?'💗':'🌙');
+  const t=document.getElementById('themeBtn'); if(t) t.textContent=ic;
+  const g=document.getElementById('gThemeBtn'); if(g) g.textContent=ic;
+  localStorage.setItem('ct_theme',mode);
+  syncLoveCategory(mode==='love');
+  if(mode==='love') startLoveHearts(); else stopLoveHearts();
+}
+// 'Sevgi' kateqoriyası yalnız sevgi rejimində seçim siyahısında olur
+function syncLoveCategory(on){
+  ['cCat','lseCat'].forEach(function(id){
+    const sel=document.getElementById(id);
+    if(!sel) return;
+    const opt=Array.from(sel.options).find(o=>o.value==='Sevgi');
+    if(on){
+      if(!opt){
+        const o=document.createElement('option');
+        o.value='Sevgi'; o.textContent='❤️ Sevgi';
+        sel.appendChild(o);
+      }
+    } else {
+      if(opt) opt.remove();
+      if(sel.value==='Sevgi') sel.value='Hamısı';
+    }
+  });
+}
 function toggleTheme(){
-  const l=document.body.classList.toggle('light');
-  const ic=l?'☀️':'🌙';
-  document.getElementById('themeBtn').textContent=ic;
-  const g=document.getElementById('gThemeBtn');if(g)g.textContent=ic;
-  localStorage.setItem('ct_theme',l?'light':'dark');
+  // Dövrə: ağ → qara → (sevgi, yalnız açılıbsa) → ağ
+  const cur=currentMode();
+  let next;
+  if(cur==='light') next='dark';
+  else if(cur==='dark') next=isLoveUnlocked()?'love':'light';
+  else next='light';
+  applyMode(next);
+}
+function initThemeMode(){
+  const saved=localStorage.getItem('ct_theme');
+  if(isLoveUnlocked()){
+    applyMode(saved==='love'?'love':(saved==='light'?'light':'dark'));
+  } else {
+    applyMode(saved==='light'?'light':'dark');
+  }
+}
+function onLockClick(){
+  if(!isLoveUnlocked()){ openGate(); return; }
+  if(!confirm('Kilidlənsin? Sevgi rejimindən çıxılacaq.')) return;
+  localStorage.removeItem('ct_love');
+  if(currentMode()==='love') applyMode('dark');
+  else stopLoveHearts();
+}
+function openGate(){
+  const g=document.getElementById('gate');
+  document.getElementById('gateInp').value='';
+  document.getElementById('gateErr').textContent='';
+  g.classList.add('show');
+  setTimeout(()=>document.getElementById('gateInp').focus(),50);
+}
+function closeGate(){ document.getElementById('gate').classList.remove('show'); }
+document.addEventListener('click',function(e){
+  const g=document.getElementById('gate');
+  if(g && g.classList.contains('show') && e.target===g) closeGate();
+});
+function tryUnlock(){
+  const inp=document.getElementById('gateInp');
+  if(inp.value!==LOVE_PASS){
+    document.getElementById('gateErr').textContent='Parol yanlışdır';
+    const box=document.getElementById('gateBox');
+    box.classList.remove('shake'); void box.offsetWidth; box.classList.add('shake');
+    inp.value=''; inp.focus();
+    return;
+  }
+  localStorage.setItem('ct_love','1');
+  closeGate();
+  playHeartIntro();
+}
+// Ürəyin parametrik tənliyi — sözlər bu forma üzrə yerləşir
+function playHeartIntro(){
+  const ov=document.getElementById('heartOverlay');
+  const line=document.getElementById('hLine');
+  ov.querySelectorAll('.hw').forEach(n=>n.remove());
+  line.textContent=LOVE_LINE; line.classList.remove('on');
+  ov.classList.add('show');
+  const s=Math.min(window.innerWidth,window.innerHeight)/36;
+  const cx=window.innerWidth/2, cy=window.innerHeight/2 - s*0.6;
+  const N=110;
+  for(let i=0;i<N;i++){
+    const t=(i/N)*Math.PI*2;
+    const x=16*Math.pow(Math.sin(t),3);
+    const y=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);
+    const el=document.createElement('span');
+    el.className='hw';
+    el.textContent=HEART_WORDS[i%HEART_WORDS.length];
+    el.style.left=(cx+x*s)+'px';
+    el.style.top=(cy-y*s)+'px';
+    el.style.fontSize=(11+Math.random()*6)+'px';
+    ov.appendChild(el);
+    setTimeout(()=>el.classList.add('on'), i*32);
+  }
+  const lineAt=N*32+400;
+  setTimeout(()=>line.classList.add('on'), lineAt);
+  // Sevgi temasına keçid: overlay yavaş-yavaş itir, arxada sevgi teması görünür
+  setTimeout(()=>{
+    applyMode('love');
+    ov.classList.remove('show');
+  }, lineAt+2600);
+  setTimeout(()=>{
+    ov.querySelectorAll('.hw').forEach(n=>n.remove());
+    line.classList.remove('on');
+  }, lineAt+4200);
+}
+// Sayğac: 24.07.2026 05:15 (Bakı, UTC+4) — hər saniyə yenilənir
+function updateLoveCounter(){
+  const start=Date.UTC(2026,6,24,1,15,0); // 05:15 UTC+4 = 01:15 UTC
+  const diff=Math.max(0,Date.now()-start);
+  const d=Math.floor(diff/86400000);
+  const hh=Math.floor(diff%86400000/3600000);
+  const mm=Math.floor(diff%3600000/60000);
+  const ss=Math.floor(diff%60000/1000);
+  const set=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
+  set('lcD', String(d));
+  set('lcH', String(hh).padStart(2,'0'));
+  set('lcM', String(mm).padStart(2,'0'));
+  set('lcS', String(ss).padStart(2,'0'));
+}
+setInterval(updateLoveCounter,1000);
+updateLoveCounter();
+function startLoveHearts(){
+  if(loveHeartIv) return;
+  const spawn=()=>{
+    const el=document.createElement('div');
+    el.className='fheart';
+    el.textContent=['❤️','💕','💗','💖','🩷'][(Math.random()*5)|0];
+    el.style.left=(Math.random()*100)+'vw';
+    el.style.fontSize=(12+Math.random()*22)+'px';
+    const dur=6+Math.random()*6;
+    el.style.animationDuration=dur+'s';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), dur*1000+200);
+  };
+  for(let i=0;i<6;i++) setTimeout(spawn, i*400);
+  loveHeartIv=setInterval(spawn,700);
+}
+function stopLoveHearts(){
+  if(loveHeartIv){ clearInterval(loveHeartIv); loveHeartIv=null; }
+  document.querySelectorAll('.fheart').forEach(n=>n.remove());
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1036,10 +1286,7 @@ window.addEventListener('load',function(){
   S.ctx     = S.canvas.getContext('2d',{willReadFrequently:true});
   S.pctx    = S.pcanvas.getContext('2d');
 
-  if(localStorage.getItem('ct_theme')==='light'){
-    document.body.classList.add('light');
-    document.getElementById('themeBtn').textContent='☀️';
-  }
+  initThemeMode();
 
   // Restore saved name & avatar from localStorage
   const savedName=localStorage.getItem('ct_name')||'';
@@ -1454,7 +1701,9 @@ function connectSocket(){
     if(isMe){S.guessedCorrect=true;setGuessedMode();}
     if(isMe||isMyDrawing) showScorePop('+'+( isMyDrawing&&!isMe ? data.drawerPts : data.pts ));
     if(isMe)flashCanvas();
-    addChat({name:data.name,text:'✅ tapdı! +'+data.pts+' xal',ok:true});
+    const lv=document.body.classList.contains('love');
+    if(lv) heartBurst(isMe?18:10);
+    addChat({name:data.name,text:(lv?'💖':'✅')+' tapdı! +'+data.pts+' xal',ok:true});
     toast(isMe?'🎉 +'+data.pts+' xal!':data.name+' tapdı! 🎯',isMe?'ok':'info');
     sndOk();
   });
@@ -1710,6 +1959,23 @@ function showScorePop(text){
   d.style.left='50%';d.style.top='42%';document.body.appendChild(d);
   setTimeout(()=>d.remove(),1400);
 }
+// Sevgi rejimində düzgün cavab / reveal üçün ürək partlaması
+function heartBurst(n){
+  const cx=window.innerWidth/2, cy=window.innerHeight*0.42;
+  for(let i=0;i<n;i++){
+    const el=document.createElement('div');
+    el.className='burst-heart';
+    el.textContent=['❤️','💖','💗','💕','🩷'][(Math.random()*5)|0];
+    const ang=Math.random()*Math.PI*2, dist=70+Math.random()*130;
+    el.style.left=cx+'px'; el.style.top=cy+'px';
+    el.style.setProperty('--dx',(Math.cos(ang)*dist).toFixed(0)+'px');
+    el.style.setProperty('--dy',(Math.sin(ang)*dist-40).toFixed(0)+'px');
+    el.style.setProperty('--rot',(Math.random()*120-60).toFixed(0)+'deg');
+    el.style.fontSize=(16+Math.random()*16)+'px';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1300);
+  }
+}
 function flashCanvas(){
   const w=document.getElementById('cwrap');
   w.classList.remove('flash');void w.offsetWidth;w.classList.add('flash');
@@ -1717,9 +1983,10 @@ function flashCanvas(){
 }
 
 function showRevealModal(word,scores){
+  const love=document.body.classList.contains('love');
   const div=document.createElement('div');div.className='modal-bg';
   const sorted=scores.slice().sort((a,b)=>b.score-a.score);
-  div.innerHTML='<div class="modal"><h3>Düzgün cavab</h3><div class="reveal-word">'+esc(word)+'</div>'+
+  div.innerHTML='<div class="modal"><h3>'+(love?'💗 ':'')+'Düzgün cavab</h3><div class="reveal-word">'+esc(word)+'</div>'+
     '<div class="slist">'+sorted.map((s,i)=>{
       const av=AVATARS[s.avatar]||AVATARS[0];
       return'<div class="srow '+(i===0?'first':'')+'"><div class="srank">'+(['🥇','🥈','🥉'][i]||(i+1)+'.')+'</div>'+
@@ -1727,6 +1994,7 @@ function showRevealModal(word,scores){
         '<div class="spts">'+s.score+'</div></div>';
     }).join('')+'</div></div>';
   div.onclick=()=>div.remove();
+  if(love) setTimeout(()=>heartBurst(12),120);
   document.body.appendChild(div);
   setTimeout(()=>{if(div.parentNode)div.remove();},5400);
 }
