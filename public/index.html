@@ -574,9 +574,9 @@ body.in-game .lock-btn{display:none}
   text-shadow:0 0 14px rgba(255,45,85,.9);opacity:0;transition:opacity 1s ease,transform 1s ease;white-space:nowrap}
 #hLine.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
 body.love{
-  --bg:#fff0f5;--card:#fff7fa;--card2:#ffe1ec;--border:#f9a8c4;
-  --sub:#9d4a6e;--text:#4a0f26;--blue:#e11d48;--blue2:#be123c;--green:#e11d48;--green2:#be123c;
-  --red:#be123c;--shadow:rgba(190,18,60,.18);
+  --bg:#f6d6e1;--card:#fbe6ee;--card2:#f2c2d3;--border:#e48aab;
+  --sub:#7a2a4d;--text:#3b0a1f;--blue:#e11d48;--blue2:#be123c;--green:#e11d48;--green2:#be123c;
+  --red:#be123c;--shadow:rgba(120,10,50,.22);
 }
 body.love::before{opacity:1;background:
   radial-gradient(ellipse 60% 45% at 8% 12%,rgba(244,63,94,.16) 0%,transparent 60%),
@@ -1115,11 +1115,10 @@ function toggleSound(){
 }
 // ══ Sevgi rejimi ═══════════════════════════════════════════════════════════
 const LOVE_PASS = '24072026';
-const LOVE_LINE = 'Səni çox sevirəm';  // ← bu cümləni istədiyin kimi dəyişə bilərsən
-const HEART_WORDS = ['Seni seviyorum','Ti amo','Te amo',"Je t'aime",'Ich liebe dich','Eu te amo',
-  'Anh yêu em','Jag älskar dig',"Σ' αγαπώ",'Я тебя люблю','我爱你','사랑해','ฉันรักเธอ','Aku cinta kamu',
-  'Ik hou van jou','Kocham cię','Я тебе кохаю','मैं तुमसे प्यार करता हूँ','愛してる','I love you',
-  'Səni sevirəm','Te quiero','Ti voglio bene'];
+const LOVE_LINE = 'I Love YOU!';
+const HEART_WORDS = ['I love you','Te amo','Ti amo',"Je t'aime",'Ich liebe dich','Te quiero',
+  'Ti voglio bene','Seni seviyorum','Səni sevirəm','Eu te amo','Kocham cię','Ik hou van jou',
+  'Aku cinta kamu','Jag älskar dig','Anh yêu em','Я тебя люблю','Люблю тебя'];
 let loveTimer=null, loveHeartIv=null;
 function isLoveUnlocked(){ return localStorage.getItem('ct_love')==='1'; }
 function currentMode(){
@@ -1205,40 +1204,50 @@ function tryUnlock(){
   closeGate();
   playHeartIntro();
 }
-// Ürəyin parametrik tənliyi — sözlər bu forma üzrə yerləşir
+// Ürək düzümü: hər söz üçün təxmini düzbucaq hesablanır, üst-üstə düşən söz atlanır
+function heartLayout(vw, vh, words){
+  // Ölçü: ürək eni və hündürlüyü ekrana sığsın (kənar sözlər üçün 60px boşluq)
+  const s=Math.max(4, Math.min((vw/2-60)/16, (vh-100)/30, 40));
+  const cx=vw/2, cy=vh/2 - s*2.3;
+  const placed=[], out=[];
+  const STEPS=720, MAX=95;
+  for(let k=0;k<STEPS && out.length<MAX;k++){
+    const t=(k/STEPS)*Math.PI*2;
+    const x=16*Math.pow(Math.sin(t),3);
+    const y=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);
+    const px=cx+x*s, py=cy-y*s;
+    const word=words[out.length % words.length];
+    const size=12+(k%4)*1.5;
+    const w=word.length*size*0.56, hgt=size*1.35;
+    const r={l:px-w/2-4, r:px+w/2+4, t:py-hgt/2-3, b:py+hgt/2+3};
+    const hit=placed.some(q=>!(r.r<q.l || r.l>q.r || r.b<q.t || r.t>q.b));
+    if(hit) continue;
+    placed.push(r);
+    out.push({x:px, y:py, size:size, word:word});
+  }
+  return out;
+}
 function playHeartIntro(){
   const ov=document.getElementById('heartOverlay');
   const line=document.getElementById('hLine');
   ov.querySelectorAll('.hw').forEach(n=>n.remove());
   line.textContent=LOVE_LINE; line.classList.remove('on');
   ov.classList.add('show');
-  const s=Math.min(window.innerWidth,window.innerHeight)/36;
-  const cx=window.innerWidth/2, cy=window.innerHeight/2 - s*0.6;
-  const N=110;
-  for(let i=0;i<N;i++){
-    const t=(i/N)*Math.PI*2;
-    const x=16*Math.pow(Math.sin(t),3);
-    const y=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);
+  const pts=heartLayout(window.innerWidth,window.innerHeight,HEART_WORDS);
+  pts.forEach(function(p,i){
     const el=document.createElement('span');
     el.className='hw';
-    el.textContent=HEART_WORDS[i%HEART_WORDS.length];
-    el.style.left=(cx+x*s)+'px';
-    el.style.top=(cy-y*s)+'px';
-    el.style.fontSize=(11+Math.random()*6)+'px';
+    el.textContent=p.word;
+    el.style.left=p.x+'px';
+    el.style.top=p.y+'px';
+    el.style.fontSize=p.size+'px';
     ov.appendChild(el);
-    setTimeout(()=>el.classList.add('on'), i*32);
-  }
-  const lineAt=N*32+400;
+    setTimeout(()=>el.classList.add('on'), i*30);
+  });
+  const lineAt=pts.length*30+400;
   setTimeout(()=>line.classList.add('on'), lineAt);
-  // Sevgi temasına keçid: overlay yavaş-yavaş itir, arxada sevgi teması görünür
-  setTimeout(()=>{
-    applyMode('love');
-    ov.classList.remove('show');
-  }, lineAt+2600);
-  setTimeout(()=>{
-    ov.querySelectorAll('.hw').forEach(n=>n.remove());
-    line.classList.remove('on');
-  }, lineAt+4200);
+  setTimeout(()=>{ applyMode('love'); ov.classList.remove('show'); }, lineAt+2600);
+  setTimeout(()=>{ ov.querySelectorAll('.hw').forEach(n=>n.remove()); line.classList.remove('on'); }, lineAt+4200);
 }
 // Sayğac: 24.07.2026 05:15 (Bakı, UTC+4) — hər saniyə yenilənir
 function updateLoveCounter(){
@@ -1803,6 +1812,7 @@ function goScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.body.classList.toggle('in-game',id==='gameScreen');
+  if(id==='homeScreen') document.querySelectorAll('.modal-bg').forEach(n=>n.remove());
   if(id==='gameScreen'){
     const l=document.body.classList.contains('light');
     const gs=document.getElementById('gSoundBtn'),gt=document.getElementById('gThemeBtn');
