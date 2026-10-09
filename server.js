@@ -204,10 +204,33 @@ const WORDS = {
       'zurna', 'qaval', 'tütək',
     ],
   },
+  'Sevgi': {
+    easy: [
+      'ürək', 'gül', 'gül buketi', 'məktub', 'sevgi məktubu', 'balon', 'ürəkli balon', 'öpüş',
+      'dodaq', 'qucaq', 'yelləncək', 'kartpostal', 'nişan üzüyü', 'toy tortu', 'şam yeməyi',
+      'bilet', 'qəlb', 'oxlu ürək', 'iki ürək', 'ürəkli kilid', 'sevgi quşları', 'ətir', 'hədiyyə',
+      'hədiyyə qutusu', 'şəkil', 'mahnı', 'piknik', 'iki fincan', 'əl ələ',
+    ],
+    medium: [
+      'ulduzlu səma', 'ay işığı', 'sahil gəzintisi', 'uçan fənər', 'dəniz kənarı', 'ulduz yağışı',
+      'musiqi qutusu', 'pianino', 'park skamyası', 'ürəkli fincan', 'ürəkli şokolad',
+      'təbrik kartı', 'kino bileti', 'romantik şam', 'toy', 'gəlin buketi', 'ürəkli pəncərə',
+      'ürəkli şəkil', 'qırmızı şərab', 'romantik axşam', 'sevgi ağacı', 'iki gül', 'gözəl mənzərə',
+      'dəniz qırağı', 'ürəkli yastıq', 'ürəkli açar',
+    ],
+    hard: [
+      'gecə yarısı', 'nişanlılar', 'bəy', 'valentin günü', 'öpüşmək', 'qucaqlaşmaq',
+      'sevgi kilidi', 'ürəkli körpü', 'ürək döyüntüsü', 'ulduz tozu', 'ürək şəkilli', 'sevgili',
+      'ürəkli məktub', 'kiçik ürək', 'qızıl üzük',
+    ],
+  },
 };
 
 function getPool(cat, diff) {
-  const cats = cat === 'Hamısı' ? Object.values(WORDS) : [WORDS[cat] || Object.values(WORDS)[0]];
+  // 'Hamısı' sevgi kateqoriyasını daxil etmir — sevgi sözləri yalnız seçiləndə çıxır
+  const cats = cat === 'Hamısı'
+    ? Object.keys(WORDS).filter(k => k !== 'Sevgi').map(k => WORDS[k])
+    : [WORDS[cat] || Object.values(WORDS)[0]];
   const pool = [];
   cats.forEach(function(c) {
     const src = diff === 'all' ? c.easy.concat(c.medium, c.hard) : (c[diff] || c.easy);
